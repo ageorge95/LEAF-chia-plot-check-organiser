@@ -1,0 +1,6 @@
+{
+  "check_command_template": {
+    "XCA": "plot_check_command",
+    "XCC": "plot_check_command"
+    }
+}
