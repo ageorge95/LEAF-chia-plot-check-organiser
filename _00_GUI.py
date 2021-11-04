@@ -236,7 +236,7 @@ class App():
 
     def __init__(self, root):
         self.root = root
-        root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt', 'r').read())
+        root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt' if path.isfile('version.txt') else path.join(sys._MEIPASS, 'version.txt') , 'r').read())
 
         console_frame = ttk.Labelframe(text="Console")
         console_frame.grid(row=0, column=1, sticky="nsew", rowspan=3)

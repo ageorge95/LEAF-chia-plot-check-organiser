@@ -20,7 +20,7 @@ jobs:
         - name: Build GUI.py
           run: |
             python _00_update_version.py "${{ github.event.release.name }}"
-            pyinstaller _00_GUI.py -F -n "${{ github.event.release.name }}.exe"
+            pyinstaller _00_GUI.py -F -n "${{ github.event.release.name }}.exe" --add-data "logo.png;." --add-data "version.txt;." --noconsole
         - name: upload windows artifact
           uses: actions/upload-release-asset@v1
           env:
