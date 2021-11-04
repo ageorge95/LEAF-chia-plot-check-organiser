@@ -97,22 +97,46 @@ class FormControls(configure_logger_and_queue,
             state='readonly',
             values=self.return_configured_coins()
         )
-        self.combobox_coin_to_use.current(0)
+        self.combobox_coin_to_use.bind("<<ComboboxSelected>>", self.update_command_label)
+        self.combobox_coin_to_use.set('SELECT A COIN')
         self.label_coin_to_use.grid(column=0, row=1, sticky=(W))
         self.combobox_coin_to_use.grid(column=0, row=2, sticky=(W))
 
+        self.label_command_used = Label(self.frame, text='Command used: SELECT A COIN ABOVE\n\n\n')
+        self.label_command_used.grid(column=0, row=3, sticky=(W))
+
         self.filter_by_input = True
         self.button_filter_by_input = tk.Button(self.frame, text='Filter by input', command=self.toggle_filter_by_input, relief="raised")
-        self.button_filter_by_input.grid(column=0, row=4, sticky=W)
+        self.button_filter_by_input.grid(column=0, row=5, sticky=W)
 
         self.separator_filtering = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering.grid(column=0, row=6, sticky=(W, E), pady=10)
+        self.separator_filtering.grid(column=0, row=7, sticky=(W, E), pady=10)
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display stored data', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=8, sticky=W)
+        self.button_display_stored_results.grid(column=0, row=9, sticky=W)
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=10, sticky=W)
+        self.button_check_plots.grid(column=0, row=11, sticky=W)
+
+    def update_command_label(self,
+                             *args # *args must be used as the Combobox sends some positional args by default to the function call
+                             ):
+        # make a potential long string smaller, by dividing across multiple lines
+        chars_per_line = 50
+        final_str = ''
+        full_str = self.config['check_command_template'][self.coin_to_use.get()]
+        while len(full_str) > chars_per_line:
+            final_str += full_str[:chars_per_line] + '\n'
+            full_str = full_str[chars_per_line:]
+            chars_per_line += 10
+        final_str += full_str
+
+        # add more newlines, to keep the same GUI size
+        while final_str.count('\n') < 3:
+            final_str += '\n'
+
+        # update the label txt
+        self.label_command_used['text'] = 'Command used: ' + final_str
 
     def toggle_filter_by_input(self):
 
@@ -153,7 +177,8 @@ class FormInput():
         self.scrolled_text_input_links.grid(row=0, column=0, sticky=(N, S, W, E))
         self.scrolled_text_input_links.configure(font='TkFixedFont')
         ScrolledTextPlaceholder(entry=self.scrolled_text_input_links,
-                                placeholder_text='Insert the root location of the plots OR the filepath to a plot. Multiple entries are allowed, one entry per one line.')
+                                placeholder_text='Insert here the root location of the plots OR the filepath to a plot. Multiple entries are allowed, one entry per one line.\n\n'
+                                                 'THE PLOTS MUST ALREADY BE REGISTERED TO THE COIN THAT YOU CHOOSE !')
 
     def return_input_filenames(self):
         all_input = self.scrolled_text_input_links.get("1.0", END).split('\n')
