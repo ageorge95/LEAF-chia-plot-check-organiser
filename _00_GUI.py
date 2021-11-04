@@ -38,7 +38,7 @@ class ConsoleUi(configure_logger_and_queue):
         self.v_scroll = Scrollbar(self.frame, orient='vertical')
         self.v_scroll.grid(row=1, column=1, sticky=(N, S))
 
-        self.scrolled_text = Text(frame, state='disabled', width=100, height=50, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
+        self.scrolled_text = Text(frame, state='disabled', width=130, height=50, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
         self.scrolled_text.grid(row=1, column=0, sticky=(N, S, W, E))
         self.scrolled_text.configure(font='TkFixedFont')
         self.scrolled_text.tag_config('INFO', foreground='black')
@@ -78,6 +78,15 @@ class ConsoleUi(configure_logger_and_queue):
         self.scrolled_text.delete('1.0', END)
         self.scrolled_text.configure(state='disabled')
 
+class sponsor_logo():
+    def __init__(self, frame):
+        self.frame = frame
+
+        self.label_sponsor_logo = Label(self.frame, text='Sponsor')
+        self.label_sponsor_logo.logo = tk.PhotoImage(file="logo.png")
+        self.label_sponsor_logo['image'] = self.label_sponsor_logo.logo
+        self.label_sponsor_logo.grid(column=0, row=0, sticky=(W))
+
 class FormControls(configure_logger_and_queue,
                    LEAF_back_end):
 
@@ -94,14 +103,14 @@ class FormControls(configure_logger_and_queue,
         self.combobox_coin_to_use = ttk.Combobox(
             self.frame,
             textvariable=self.coin_to_use,
-            width=45,
+            width=15,
             state='readonly',
             values=self.return_configured_coins()
         )
         self.combobox_coin_to_use.bind("<<ComboboxSelected>>", self.update_command_label)
         self.combobox_coin_to_use.set('SELECT A COIN')
-        self.label_coin_to_use.grid(column=0, row=1, sticky=(W))
-        self.combobox_coin_to_use.grid(column=0, row=2, sticky=(W))
+        self.label_coin_to_use.grid(column=0, row=1)
+        self.combobox_coin_to_use.grid(column=0, row=2)
 
         self.label_command_used = Label(self.frame, text='Command used: SELECT A COIN ABOVE\n\n\n')
         self.label_command_used.grid(column=0, row=3, sticky=(W))
@@ -186,7 +195,7 @@ class FormInput():
     def __init__(self, frame):
         self.frame = frame
 
-        self.scrolled_text_input_links = ScrolledText(self.frame, width=50, height=45)
+        self.scrolled_text_input_links = ScrolledText(self.frame, width=50, height=28)
         self.scrolled_text_input_links.grid(row=0, column=0, sticky=(N, S, W, E))
         self.scrolled_text_input_links.configure(font='TkFixedFont')
         ScrolledTextPlaceholder(entry=self.scrolled_text_input_links,
@@ -228,16 +237,20 @@ class App():
         root.title('LEAF-chia-plot-check-organiser')
 
         input_frame = ttk.Labelframe(text="Input")
-        input_frame.grid(row=1, column=0, sticky="nsew")
+        input_frame.grid(row=2, column=0, sticky="nsew")
         self.input_frame = FormInput(input_frame)
 
+        sponsor_frame = ttk.Labelframe(text="Sponsor")
+        sponsor_frame.grid(row=0, column=0, sticky="nsew")
+        self.sponsor_frame = sponsor_logo(sponsor_frame)
+
         controls_frame = ttk.Labelframe(text="Controls")
-        controls_frame.grid(row=0, column=0, sticky="nsew")
+        controls_frame.grid(row=1, column=0, sticky="nsew")
         self.controls_frame = FormControls(controls_frame,
                                            self.input_frame)
 
         console_frame = ttk.Labelframe(text="Console")
-        console_frame.grid(row=0, column=1, sticky="nsew", rowspan=2)
+        console_frame.grid(row=0, column=1, sticky="nsew", rowspan=3)
         self.console_frame = ConsoleUi(console_frame)
 
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
