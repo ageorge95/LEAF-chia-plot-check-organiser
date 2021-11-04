@@ -123,7 +123,18 @@ class FormControls(configure_logger_and_queue,
                                   list_of_filenames=self.input_frame.return_input_filenames())
 
     def master_check_plots(self):
-        pass
+        self.combobox_coin_to_use.configure(state='disabled')
+        self.button_filter_by_input.configure(state='disabled')
+        self.button_display_stored_results.configure(state='disabled')
+        self.button_check_plots.configure(state='disabled')
+        self._log.info('Checking the plots. Controls are now disabled until the operation is done. Please wait ...')
+        self.check_plots(coin=self.coin_to_use.get(),
+                         list_of_plots_fiepaths=self.input_frame.return_input_filepaths())
+        self._log.info('Plots check completed ! Controls are now enabled.')
+        self.combobox_coin_to_use.configure(state='normal')
+        self.button_filter_by_input.configure(state='normal')
+        self.button_display_stored_results.configure(state='normal')
+        self.button_check_plots.configure(state='normal')
 
 class FormInput():
 
@@ -145,7 +156,22 @@ class FormInput():
                 for file in listdir(entry):
                     if file.endswith('.plot'):
                         to_return.append(path.basename(file))
-        return to_return
+            to_return.append(entry)
+        return to_return[:-1]
+
+    def return_input_filepaths(self):
+        all_input = self.scrolled_text_input_links.get("1.0", END).split('\n')
+        to_return = []
+        for entry in all_input:
+            if path.isfile(entry):
+                if entry.endswith('.plot'):
+                    to_return.append(entry)
+            if path.isdir(entry):
+                for file in listdir(entry):
+                    if file.endswith('.plot'):
+                        to_return.append(path.join(entry, file))
+            to_return.append(entry)
+        return to_return[:-1]
 
 class App():
 

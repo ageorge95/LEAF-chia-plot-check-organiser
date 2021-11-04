@@ -1,6 +1,6 @@
 {
   "check_command_template": {
-    "XCA": "plot_check_command",
-    "XCC": "plot_check_command"
+    "XCH": "C:\\chia_mining\\chia-blockchain\\venv\\Scripts\\chia.exe plots check -g {plot_filename}",
+    "XCC": "C:\\chia_mining\\chives-blockchain\\venv\\Scripts\\chives.exe plots check -g {plot_filename}"
     }
 }
