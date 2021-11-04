@@ -10,6 +10,14 @@ from tkinter import ttk, N, S, E, W, END, Label, BOTTOM, RIGHT, NONE
 from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end
 
+def ScrolledTextPlaceholder(entry,
+                            placeholder_text):
+    def focus_out_hint(entry):
+        if entry.get("1.0", END) == '\n': entry.insert("1.0", placeholder_text)
+    entry.insert("1.0", placeholder_text)
+    entry.bind("<FocusIn>", lambda args: entry.delete('1.0', END) if entry.get("1.0", END) == placeholder_text else entry.get("1.0", END))
+    entry.bind("<FocusOut>", (lambda args: focus_out_hint(entry)))
+
 class ConsoleUi(configure_logger_and_queue):
     """Poll messages from a logging queue and display them in a scrolled text widget"""
 
@@ -144,6 +152,8 @@ class FormInput():
         self.scrolled_text_input_links = ScrolledText(self.frame, width=50, height=45)
         self.scrolled_text_input_links.grid(row=0, column=0, sticky=(N, S, W, E))
         self.scrolled_text_input_links.configure(font='TkFixedFont')
+        ScrolledTextPlaceholder(entry=self.scrolled_text_input_links,
+                                placeholder_text='Insert the root location of the plots OR the filepath to a plot. Multiple entries are allowed, one entry per one line.')
 
     def return_input_filenames(self):
         all_input = self.scrolled_text_input_links.get("1.0", END).split('\n')
