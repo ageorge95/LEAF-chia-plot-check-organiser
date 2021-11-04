@@ -19,8 +19,15 @@ class LEAF_back_end():
         self.wd_root = wd_root
         self.wf_name = wf_name
 
-        with open('config.json', 'r') as json_in_handle:
-            self.config = load(json_in_handle)
+        if path.isfile('config.json'):
+            with open('config.json', 'r') as json_in_handle:
+                self.config = load(json_in_handle)
+        else:
+            self.config = {'check_command_template': {}}
+            with open(path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
+                dump(self.config, json_out_handle)
+        if len(self.config['check_command_template']) == 0:
+            self._log.error('There are no entries in config ! Please add new entries and restart the tool !')
 
         if path.isfile(path.join(self.wd_root, self.wf_name)):
             with open(path.join(self.wd_root, self.wf_name), 'r') as json_in_handle:

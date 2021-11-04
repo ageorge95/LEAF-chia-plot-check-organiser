@@ -87,8 +87,9 @@ class sponsor_logo():
         self.label_sponsor_logo['image'] = self.label_sponsor_logo.logo
         self.label_sponsor_logo.grid(column=0, row=0, sticky=(W))
 
-class FormControls(configure_logger_and_queue,
-                   LEAF_back_end):
+class FormControls(LEAF_back_end,
+                   configure_logger_and_queue
+                   ):
 
     def __init__(self,
                  frame,
@@ -236,6 +237,10 @@ class App():
         self.root = root
         root.title('LEAF-chia-plot-check-organiser')
 
+        console_frame = ttk.Labelframe(text="Console")
+        console_frame.grid(row=0, column=1, sticky="nsew", rowspan=3)
+        self.console_frame = ConsoleUi(console_frame)
+
         input_frame = ttk.Labelframe(text="Input")
         input_frame.grid(row=2, column=0, sticky="nsew")
         self.input_frame = FormInput(input_frame)
@@ -248,10 +253,6 @@ class App():
         controls_frame.grid(row=1, column=0, sticky="nsew")
         self.controls_frame = FormControls(controls_frame,
                                            self.input_frame)
-
-        console_frame = ttk.Labelframe(text="Console")
-        console_frame.grid(row=0, column=1, sticky="nsew", rowspan=3)
-        self.console_frame = ConsoleUi(console_frame)
 
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
         self.root.bind('<Control-q>', self.quit)
