@@ -86,7 +86,7 @@ class sponsor_logo():
         self.label_sponsor_logo = Label(self.frame, text='Sponsor')
         self.label_sponsor_logo.logo = tk.PhotoImage(file="logo.png" if path.isfile("logo.png") else path.join(sys._MEIPASS, "logo.png"))
         self.label_sponsor_logo['image'] = self.label_sponsor_logo.logo
-        self.label_sponsor_logo.grid(column=0, row=0, sticky=(W))
+        self.label_sponsor_logo.grid(column=0, row=0, padx=85)
 
 class FormControls(LEAF_back_end,
                    configure_logger_and_queue
