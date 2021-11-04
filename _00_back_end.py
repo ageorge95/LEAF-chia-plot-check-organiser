@@ -61,30 +61,33 @@ class LEAF_back_end():
             if not path.isfile(entry):
                 self._log.warning('{} is not a valid path. It will be skipped.'.format(entry))
             else:
-                plot_name = path.basename(entry)
-                self._log.info('Please wait, now checking plot {}'.format(plot_name))
+                if coin != 'SELECT A COIN':
+                    plot_name = path.basename(entry)
+                    self._log.info('Please wait, now checking plot {}'.format(plot_name))
 
-                if coin not in self.catalog.keys():
-                    self.catalog[coin] = {}
+                    if coin not in self.catalog.keys():
+                        self.catalog[coin] = {}
 
-                if plot_name not in self.catalog[coin].keys():
+                    if plot_name not in self.catalog[coin].keys():
 
-                    self.catalog[coin][plot_name] = {'path': entry}
-                    full_command = self.config['check_command_template'][coin].format(plot_filename=plot_name)
-                    print(full_command)
-                    output = run(full_command, stderr=PIPE).stderr.decode('utf-8')
-                    self.catalog[coin][plot_name]['output_data'] = output
-                    self.catalog[coin][plot_name]['proofs'] = float(output.split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
-                    if '1 invalid' in output:
-                        self.catalog[coin][plot_name]['validity'] = 'invalid'
+                        self.catalog[coin][plot_name] = {'path': entry}
+                        full_command = self.config['check_command_template'][coin].format(plot_filename=plot_name)
+                        output = run(full_command, stderr=PIPE).stderr.decode('utf-8')
+                        self.catalog[coin][plot_name]['output_data'] = output
+                        self.catalog[coin][plot_name]['proofs'] = float(output.split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
+                        if '1 invalid' in output:
+                            self.catalog[coin][plot_name]['validity'] = 'invalid'
+                        else:
+                            self.catalog[coin][plot_name]['validity'] = 'valid'
+
+                        with open(path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
+                            dump(self.catalog, json_out_handle, indent=2)
+
+                        self._log.info('Check done and result saved for {}: \n{}'.format(plot_name,
+                                                                                         self.catalog[coin][plot_name]['output_data']))
+
                     else:
-                        self.catalog[coin][plot_name]['validity'] = 'valid'
-
-                    with open(path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
-                        dump(self.catalog, json_out_handle, indent=2)
-
-                    self._log.info('Check done and result saved for {}: \n{}'.format(plot_name,
-                                                                                     self.catalog[coin][plot_name]['output_data']))
-
+                        self._log.info('{} already in the stored results. Skipping ...'.format(plot_name))
+                        return
                 else:
-                    self._log.info('{} already in the stored results. Skipping ...'.format(plot_name))
+                    self._log.warning('Please select a valid coin')

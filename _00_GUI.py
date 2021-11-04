@@ -4,6 +4,7 @@ from os import path,\
     listdir
 from signal import signal,\
     SIGINT
+from threading import Thread
 from tkinter.scrolledtext import ScrolledText, Text, Scrollbar
 from tkinter import ttk, N, S, E, W, END, Label, BOTTOM, RIGHT, NONE
 
@@ -155,18 +156,22 @@ class FormControls(configure_logger_and_queue,
                                   list_of_filenames=self.input_frame.return_input_filenames())
 
     def master_check_plots(self):
-        self.combobox_coin_to_use.configure(state='disabled')
-        self.button_filter_by_input.configure(state='disabled')
-        self.button_display_stored_results.configure(state='disabled')
-        self.button_check_plots.configure(state='disabled')
-        self._log.info('Checking the plots. Controls are now disabled until the operation is done. Please wait ...')
-        self.check_plots(coin=self.coin_to_use.get(),
-                         list_of_plots_fiepaths=self.input_frame.return_input_filepaths())
-        self._log.info('Plots check completed ! Controls are now enabled.')
-        self.combobox_coin_to_use.configure(state='normal')
-        self.button_filter_by_input.configure(state='normal')
-        self.button_display_stored_results.configure(state='normal')
-        self.button_check_plots.configure(state='normal')
+        def action():
+            self.combobox_coin_to_use.configure(state='disabled')
+            self.button_filter_by_input.configure(state='disabled')
+            self.button_display_stored_results.configure(state='disabled')
+            self.button_check_plots.configure(state='disabled')
+            self._log.info('Checking the plots. Controls are now disabled until the operation is done. Please wait ...')
+            self.check_plots(**{'coin': self.coin_to_use.get(),
+                                'list_of_plots_fiepaths': self.input_frame.return_input_filepaths()})
+            # Thread(target=self.check_plots, kwargs={'coin': self.coin_to_use.get(),
+            #                                         'list_of_plots_fiepaths': self.input_frame.return_input_filepaths()}).start()
+            self._log.info('Plots check completed ! Controls are now enabled.')
+            self.combobox_coin_to_use.configure(state='normal')
+            self.button_filter_by_input.configure(state='normal')
+            self.button_display_stored_results.configure(state='normal')
+            self.button_check_plots.configure(state='normal')
+        Thread(target=action).start()
 
 class FormInput():
 
@@ -187,11 +192,11 @@ class FormInput():
             if path.isfile(entry):
                 if entry.endswith('.plot'):
                     to_return.append(path.basename(entry))
-            if path.isdir(entry):
+            elif path.isdir(entry):
                 for file in listdir(entry):
                     if file.endswith('.plot'):
                         to_return.append(path.basename(file))
-            to_return.append(entry)
+            else: to_return.append(entry)
         return to_return[:-1]
 
     def return_input_filepaths(self):
@@ -201,11 +206,11 @@ class FormInput():
             if path.isfile(entry):
                 if entry.endswith('.plot'):
                     to_return.append(entry)
-            if path.isdir(entry):
+            elif path.isdir(entry):
                 for file in listdir(entry):
                     if file.endswith('.plot'):
                         to_return.append(path.join(entry, file))
-            to_return.append(entry)
+            else: to_return.append(entry)
         return to_return[:-1]
 
 class App():
