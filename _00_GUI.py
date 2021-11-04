@@ -1,5 +1,7 @@
 import tkinter as tk
 from queue import Empty
+from os import path,\
+    listdir
 from signal import signal,\
     SIGINT
 from tkinter.scrolledtext import ScrolledText, Text, Scrollbar
@@ -91,14 +93,34 @@ class FormControls(configure_logger_and_queue,
         self.label_coin_to_use.grid(column=0, row=1, sticky=(W))
         self.combobox_coin_to_use.grid(column=0, row=2, sticky=(W))
 
+        self.filter_by_input = True
+        self.button_filter_by_input = tk.Button(self.frame, text='Filter by input', command=self.toggle_filter_by_input, relief="raised")
+        self.button_filter_by_input.grid(column=0, row=4, sticky=W)
+
+        self.separator_filtering = ttk.Separator(self.frame, orient='horizontal')
+        self.separator_filtering.grid(column=0, row=6, sticky=(W, E), pady=10)
+
         self.button_display_stored_results = ttk.Button(self.frame, text='Display stored data', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=4, sticky=W)
+        self.button_display_stored_results.grid(column=0, row=8, sticky=W)
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=6, sticky=W)
+        self.button_check_plots.grid(column=0, row=10, sticky=W)
+
+    def toggle_filter_by_input(self):
+
+        if self.button_filter_by_input.config('relief')[-1] == 'sunken':
+            self.button_filter_by_input.config(relief="raised", text='Filter by input')
+            self.filter_by_input = True
+            self._log.info('Will filter by input.')
+        else:
+            self.button_filter_by_input.config(relief="sunken", text='Parse all stored data')
+            self.filter_by_input = False
+            self._log.info('Will parse all stored data.')
 
     def master_display_stored_results(self):
-        self.print_stored_results(coin=self.coin_to_use.get())
+        self.print_stored_results(coin=self.coin_to_use.get(),
+                                  filter_by_input=self.filter_by_input,
+                                  list_of_filenames=self.input_frame.return_input_filenames())
 
     def master_check_plots(self):
         pass
@@ -112,8 +134,18 @@ class FormInput():
         self.scrolled_text_input_links.grid(row=0, column=0, sticky=(N, S, W, E))
         self.scrolled_text_input_links.configure(font='TkFixedFont')
 
-    def return_input_data(self):
-        return self.scrolled_text_input_links.get("1.0", END)
+    def return_input_filenames(self):
+        all_input = self.scrolled_text_input_links.get("1.0", END).split('\n')
+        to_return = []
+        for entry in all_input:
+            if path.isfile(entry):
+                if entry.endswith('.plot'):
+                    to_return.append(path.basename(entry))
+            if path.isdir(entry):
+                for file in listdir(entry):
+                    if file.endswith('.plot'):
+                        to_return.append(path.basename(file))
+        return to_return
 
 class App():
 

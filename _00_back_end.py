@@ -29,7 +29,9 @@ class LEAF_back_end():
         return list(self.config['check_command_template'].keys())
 
     def print_stored_results(self,
-                             coin):
+                             coin,
+                             filter_by_input,
+                             list_of_filenames):
         if coin in self.catalog.keys():
             # sort the results
             sorted_catalog = dict(sorted(self.catalog[coin].items(), key=lambda x: x[1]['proofs']))
@@ -39,9 +41,10 @@ class LEAF_back_end():
             table_rows = []
 
             for result in sorted_catalog.items():
-                row = [result[1]['path'], result[1]['proofs'], result[1]['validity']]
+                if (filter_by_input and path.basename(result[1]['path']) in list_of_filenames) or not filter_by_input:
+                    row = [result[1]['path'], result[1]['proofs'], result[1]['validity']]
 
-                table_rows.append(row)
+                    table_rows.append(row)
 
             self._log.info('\n' + tabulate(table_rows, headers=headers, tablefmt="grid"))
         else:
