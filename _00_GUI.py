@@ -2,6 +2,7 @@ import tkinter as tk
 from queue import Empty
 from os import path,\
     listdir
+import sys
 from signal import signal,\
     SIGINT
 from threading import Thread
@@ -83,7 +84,7 @@ class sponsor_logo():
         self.frame = frame
 
         self.label_sponsor_logo = Label(self.frame, text='Sponsor')
-        self.label_sponsor_logo.logo = tk.PhotoImage(file="logo.png")
+        self.label_sponsor_logo.logo = tk.PhotoImage(file="logo.png" if path.isfile("logo.png") else path.join(sys._MEIPASS, "logo.png"))
         self.label_sponsor_logo['image'] = self.label_sponsor_logo.logo
         self.label_sponsor_logo.grid(column=0, row=0, sticky=(W))
 
@@ -235,7 +236,7 @@ class App():
 
     def __init__(self, root):
         self.root = root
-        root.title('LEAF-chia-plot-check-organiser')
+        root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt', 'r').read())
 
         console_frame = ttk.Labelframe(text="Console")
         console_frame.grid(row=0, column=1, sticky="nsew", rowspan=3)

@@ -24,7 +24,7 @@ class LEAF_back_end():
                 self.config = load(json_in_handle)
         else:
             self.config = {'check_command_template': {}}
-            with open(path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
+            with open('config.json', 'w') as json_out_handle:
                 dump(self.config, json_out_handle)
         if len(self.config['check_command_template']) == 0:
             self._log.error('There are no entries in config ! Please add new entries and restart the tool !')
