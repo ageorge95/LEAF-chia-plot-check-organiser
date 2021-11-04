@@ -31,10 +31,24 @@ class LEAF_back_end():
     def return_configured_coins(self):
         return list(self.config['check_command_template'].keys())
 
+    def print_raw_output(self,
+                         coin,
+                         filter_by_input,
+                         list_of_filenames
+                         ):
+        if coin in self.catalog.keys():
+            for filename, content in self.catalog[coin].items():
+                if (filter_by_input and (filename in list_of_filenames)) or not filter_by_input:
+                    self._log.info('Displaying raw output for {}.'.format(filename))
+                    self._log.info('\n' + content['output_data'])
+        else:
+            self._log.warning('{} has no registered plot checks !'.format(coin))
+
     def print_stored_results(self,
                              coin,
                              filter_by_input,
-                             list_of_filenames):
+                             list_of_filenames
+                             ):
         if coin in self.catalog.keys():
             # sort the results
             sorted_catalog = dict(sorted(self.catalog[coin].items(), key=lambda x: x[1]['proofs']))

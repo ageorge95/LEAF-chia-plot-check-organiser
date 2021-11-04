@@ -116,8 +116,11 @@ class FormControls(configure_logger_and_queue,
         self.button_display_stored_results = ttk.Button(self.frame, text='Display stored data', command=self.master_display_stored_results)
         self.button_display_stored_results.grid(column=0, row=9, sticky=W)
 
+        self.button_display_raw_output = ttk.Button(self.frame, text='Display raw output', command=self.master_display_raw_output)
+        self.button_display_raw_output.grid(column=0, row=11, sticky=W)
+
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=11, sticky=W)
+        self.button_check_plots.grid(column=0, row=13, sticky=W)
 
     def update_command_label(self,
                              *args # *args must be used as the Combobox sends some positional args by default to the function call
@@ -154,6 +157,11 @@ class FormControls(configure_logger_and_queue,
         self.print_stored_results(coin=self.coin_to_use.get(),
                                   filter_by_input=self.filter_by_input,
                                   list_of_filenames=self.input_frame.return_input_filenames())
+
+    def master_display_raw_output(self):
+        self.print_raw_output(coin=self.coin_to_use.get(),
+                              filter_by_input=self.filter_by_input,
+                              list_of_filenames=self.input_frame.return_input_filenames())
 
     def master_check_plots(self):
         def action():
@@ -196,7 +204,7 @@ class FormInput():
                 for file in listdir(entry):
                     if file.endswith('.plot'):
                         to_return.append(path.basename(file))
-            else: to_return.append(entry)
+            else: to_return.append(path.basename(entry))
         return to_return[:-1]
 
     def return_input_filepaths(self):
