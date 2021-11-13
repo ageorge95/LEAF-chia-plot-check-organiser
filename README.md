@@ -68,7 +68,7 @@ Some hints about the main clickable parts of the layout:
 -> you can use a filter for the actions to be executed; if the filter_button is NOT_PRESSED than only the plots derived from the Input area will be used, otherwise the whole data from catalog.json will be used.
 -> you can use whatever coin you want to check the plots; for chia plots (>=k32) though I recommend the chia coin.
 
-If you want fast support (faster than with github issues that is), join our Discord server: TBD
+If you want fast support (faster than with github issues that is), join our Discord server: https://discord.gg/TnbYb2bTmt
 
 Also, if you want any other hints added here, just let me know via the discord server 🙂
 
