@@ -61,7 +61,7 @@ class LEAF_back_end():
             sorted_catalog = dict(sorted(self.catalog[coin].items(), key=lambda x: x[1]['proofs']))
 
             # reporting phase
-            headers = ['Plot filepath', 'Valid_Test', 'Proofs']
+            headers = ['Plot filepath', 'Proofs Ratio', 'Valid_Test']
             table_rows = []
 
             for result in sorted_catalog.items():
