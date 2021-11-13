@@ -179,6 +179,7 @@ class FormControls(LEAF_back_end,
             self.combobox_coin_to_use.configure(state='disabled')
             self.button_filter_by_input.configure(state='disabled')
             self.button_display_stored_results.configure(state='disabled')
+            self.button_display_raw_output.configure(state='disabled')
             self.button_check_plots.configure(state='disabled')
             self._log.info('Checking the plots. Controls are now disabled until the operation is done. Please wait ...')
             self.check_plots(**{'coin': self.coin_to_use.get(),
@@ -189,6 +190,7 @@ class FormControls(LEAF_back_end,
             self.combobox_coin_to_use.configure(state='normal')
             self.button_filter_by_input.configure(state='normal')
             self.button_display_stored_results.configure(state='normal')
+            self.button_display_raw_output.configure(state='normal')
             self.button_check_plots.configure(state='normal')
         Thread(target=action).start()
 
