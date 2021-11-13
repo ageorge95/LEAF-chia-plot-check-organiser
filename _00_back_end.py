@@ -109,6 +109,5 @@ class LEAF_back_end():
 
                     else:
                         self._log.info('{} already in the stored results. Skipping ...'.format(plot_name))
-                        return
                 else:
                     self._log.warning('Please select a valid coin')
