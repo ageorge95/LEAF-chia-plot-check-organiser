@@ -1,10 +1,24 @@
-from logging import getLogger
+from sys import path
+from os import path as os_path, listdir
+path.append(os_path.join('chia_blockchain'))
+path.append(os_path.join('chives_blockchain'))
+
+from io import StringIO
+from yaml import safe_load
+from pathlib import Path
+from logging import getLogger, StreamHandler, Formatter
 from json import load,\
     dump
-from os import path
 from tabulate import tabulate
 from subprocess import run,\
     PIPE
+from chia_blockchain.chia.plotting.check_plots import check_plots as check_plots_chia
+from chives_blockchain.chives.plotting.check_plots import check_plots as check_plots_chives
+
+configuration = {'chia__XCH': {'logic': check_plots_chia,
+                               'root': Path(os_path.join(os_path.expanduser("~"),'.chia\mainnet'))},
+                 'chives__XCC': {'logic': check_plots_chives,
+                               'root': Path(os_path.join(os_path.expanduser("~"),'.chives\mainnet'))}}
 
 class LEAF_back_end():
 
@@ -19,95 +33,104 @@ class LEAF_back_end():
         self.wd_root = wd_root
         self.wf_name = wf_name
 
-        if path.isfile('config.json'):
-            with open('config.json', 'r') as json_in_handle:
-                self.config = load(json_in_handle)
-        else:
-            self.config = {'check_command_template': {}}
-            with open('config.json', 'w') as json_out_handle:
-                dump(self.config, json_out_handle)
-        if len(self.config['check_command_template']) == 0:
-            self._log.error('There are no entries in config ! Please add new entries and restart the tool !')
-
-        if path.isfile(path.join(self.wd_root, self.wf_name)):
-            with open(path.join(self.wd_root, self.wf_name), 'r') as json_in_handle:
+        if os_path.isfile(os_path.join(self.wd_root, self.wf_name)):
+            with open(os_path.join(self.wd_root, self.wf_name), 'r') as json_in_handle:
                 self.catalog = load(json_in_handle)
         else:
             self.catalog = {}
 
-    def return_configured_coins(self):
-        return list(self.config['check_command_template'].keys())
+    def get_filenames_from_yaml(self,
+                                coin):
+        with open(os_path.join(configuration[coin]['root'], 'config', 'config.yaml'), 'r') as yaml_in_handle:
+            yaml_as_dict = safe_load(yaml_in_handle)
+            return [os_path.join(entry, plot_filepath) for entry in yaml_as_dict['harvester']['plot_directories'] for plot_filepath in listdir(entry)]
 
     def print_raw_output(self,
                          coin,
-                         filter_by_input,
-                         list_of_filenames
-                         ):
-        if coin in self.catalog.keys():
-            for filename, content in self.catalog[coin].items():
-                if (filter_by_input and (filename in list_of_filenames)) or not filter_by_input:
-                    self._log.info('Displaying raw output for {}.'.format(filename))
-                    self._log.info('\n' + content['output_data'])
-        else:
-            self._log.warning('{} has no registered plot checks !'.format(coin))
+                         filter_string):
+        if filter_string:
+            if coin in self.catalog.keys():
+                for filename, content in self.catalog[coin].items():
+                    if filter_string in filename or filename in filter_string:
+                        self._log.info('Displaying raw output for {}.'.format(filename))
+                        self._log.info('\n' + content['output_data'])
+            else:
+                self._log.warning('{} has no registered plot checks !'.format(coin))
 
     def print_stored_results(self,
-                             coin,
-                             filter_by_input,
-                             list_of_filenames
-                             ):
+                             coin):
         if coin in self.catalog.keys():
             # sort the results
             sorted_catalog = dict(sorted(self.catalog[coin].items(), key=lambda x: x[1]['proofs']))
+            registered_plots = self.get_filenames_from_yaml(coin=coin)
 
             # reporting phase
             headers = ['Plot filepath', 'Proofs Ratio', 'Valid_Test']
             table_rows = []
 
             for result in sorted_catalog.items():
-                if (filter_by_input and path.basename(result[1]['path']) in list_of_filenames) or not filter_by_input:
+                if os_path.basename(result[1]['path']) in [os_path.basename(entry) for entry in registered_plots]:
                     row = [result[1]['path'], result[1]['proofs'], result[1]['validity']]
 
                     table_rows.append(row)
 
+            self._log.info('Found {} plots configured in the yaml out of which {} plots were checked in the past by this tool'.format(len(registered_plots),
+                                                                                                                                      len(table_rows)))
             self._log.info('\n' + tabulate(table_rows, headers=headers, tablefmt="grid"))
         else:
             self._log.warning('{} has no registered plot checks !'.format(coin))
 
     def check_plots(self,
-                    list_of_plots_fiepaths: list,
-                    coin: str):
+                    coin: str,
+                    list_of_plots_fiepaths: list = None,
+                    ):
+        if not list_of_plots_fiepaths:
+            list_of_plots_fiepaths = self.get_filenames_from_yaml(coin=coin)
 
         for entry in list_of_plots_fiepaths:
-            if not path.isfile(entry):
+            if not os_path.isfile(entry):
                 self._log.warning('{} is not a valid path. It will be skipped.'.format(entry))
             else:
-                if coin != 'SELECT A COIN':
-                    plot_name = path.basename(entry)
-                    self._log.info('Please wait, now checking plot {}'.format(plot_name))
+                plot_name = os_path.basename(entry)
+                self._log.info('Please wait, now checking plot {}'.format(plot_name))
 
-                    if coin not in self.catalog.keys():
-                        self.catalog[coin] = {}
+                if coin not in self.catalog.keys():
+                    self.catalog[coin] = {}
 
-                    if plot_name not in self.catalog[coin].keys():
+                if plot_name not in self.catalog[coin].keys():
 
-                        self.catalog[coin][plot_name] = {'path': entry}
-                        full_command = self.config['check_command_template'][coin].format(plot_filename=plot_name)
-                        output = run(full_command, stderr=PIPE).stderr.decode('utf-8')
-                        self.catalog[coin][plot_name]['output_data'] = output
-                        self.catalog[coin][plot_name]['proofs'] = float(output.split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
-                        if '1 invalid' in output:
-                            self.catalog[coin][plot_name]['validity'] = 'invalid'
-                        else:
-                            self.catalog[coin][plot_name]['validity'] = 'valid'
+                    self.catalog[coin][plot_name] = {'path': entry}
 
-                        with open(path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
-                            dump(self.catalog, json_out_handle, indent=2)
+                    buffer = StringIO()
+                    self.logHandler = StreamHandler(buffer)
+                    formatter = Formatter('%(asctime)s,%(msecs)d %(levelname)-4s [%(filename)s:%(lineno)d -> %(name)s - %(funcName)s] ___ %(message)s')
+                    self.logHandler.setFormatter(formatter)
+                    self._log.addHandler(self.logHandler)
 
-                        self._log.info('Check done and result saved for {}: \n{}'.format(plot_name,
-                                                                                         self.catalog[coin][plot_name]['output_data']))
+                    configuration[coin]['logic'](root_path=configuration[coin]['root'],
+                                                num=None,
+                                                challenge_start=None,
+                                                grep_string=plot_name,
+                                                list_duplicates=False,
+                                                debug_show_memo=None)
 
+                    self._log.removeHandler(self.logHandler)
+                    output = buffer.getvalue()
+
+                    self.catalog[coin][plot_name]['output_data'] = str(output)
+                    try:
+                        self.catalog[coin][plot_name]['proofs'] = float(str(output).split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
+                    except:
+                        self.catalog[coin][plot_name]['proofs'] = 0
+                    if '1 valid' in str(output):
+                        self.catalog[coin][plot_name]['validity'] = 'valid'
                     else:
-                        self._log.info('{} already in the stored results. Skipping ...'.format(plot_name))
+                        self.catalog[coin][plot_name]['validity'] = 'invalid'
+
+                    with open(os_path.join(self.wd_root, self.wf_name), 'w') as json_out_handle:
+                        dump(self.catalog, json_out_handle, indent=2)
+
+                    self._log.info('Check done and result saved for {}'.format(plot_name))
+
                 else:
-                    self._log.warning('Please select a valid coin')
+                    self._log.info('{} already in the stored results. Skipping ...'.format(plot_name))
