@@ -30,6 +30,9 @@ class LEAF_back_end():
 
         self.wd_root = wd_root
         self.wf_name = wf_name
+        self.reload_catalog()
+
+    def reload_catalog(self):
 
         if os_path.isfile(os_path.join(self.wd_root, self.wf_name)):
             with open(os_path.join(self.wd_root, self.wf_name), 'r') as json_in_handle:
@@ -70,6 +73,7 @@ class LEAF_back_end():
     def print_raw_output(self,
                          coin,
                          filter_string):
+        self.reload_catalog()
         if filter_string:
             if coin in self.catalog.keys():
                 for filename, content in self.catalog[coin].items():
@@ -81,6 +85,7 @@ class LEAF_back_end():
 
     def print_stored_results(self,
                              coin):
+        self.reload_catalog()
         if coin in self.catalog.keys():
             # sort the results
             sorted_catalog = dict(sorted(self.catalog[coin].items(), key=lambda x: x[1]['proofs']))
@@ -106,6 +111,7 @@ class LEAF_back_end():
                     coin: str,
                     list_of_plots_filepaths: list = None,
                     ):
+        self.reload_catalog()
         if not list_of_plots_filepaths:
             list_of_plots_filepaths = self.get_filenames_from_yaml(coin=coin)
 
@@ -143,10 +149,14 @@ class LEAF_back_end():
 
                     self.catalog[coin][plot_name]['output_data'] = str(output)
                     try:
-                        self.catalog[coin][plot_name]['proofs'] = float(str(output).split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
+                        self.catalog[coin][plot_name]['proofs'] = float(self.catalog[coin][plot_name]['output_data'].split('Proofs ')[-1].split(', ')[1].split('\n')[0])
                     except:
-                        self.catalog[coin][plot_name]['proofs'] = 0
-                    if '1 valid' in str(output):
+                        try:
+                            self.catalog[coin][plot_name]['proofs'] = float(self.catalog[coin][plot_name]['output_data'].split('Proofs ')[-1].split(', ')[1].split('\u001b[0m')[0])
+                        except:
+                            self.catalog[coin][plot_name]['proofs'] = 0
+
+                    if '1 valid' in self.catalog[coin][plot_name]['output_data']:
                         self.catalog[coin][plot_name]['validity'] = 'valid'
                     else:
                         self.catalog[coin][plot_name]['validity'] = 'invalid'

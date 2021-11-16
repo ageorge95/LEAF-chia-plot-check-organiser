@@ -24,9 +24,9 @@ Sponsored by HDDcoin, an eco-friendly decentralization blockchain based on the P
 ![alt text](https://c.tenor.com/FDwYMy302gMAAAAM/tumbleweed-silence.gif?raw=true)
 
 # High level overview
-The tool will check the plots, using the preferred coin (path to the daemon is configurable in config.json).
+The tool will check the plots, using one of the pre-configured cois.
 
-The tool is receiving as inputs either paths to plots or folders where plots are located.
+The tool is using the direct logic from the included coins, and the plot filepaths are read directly from the config.yaml, no user input is required.
 
 On subsequent executions, only new plots (that are not present in catalog.json) will be checked.
 
@@ -44,7 +44,7 @@ Here is an output example from "Check plots":
 
 ![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/plot_check_ex.jpg?raw=true)
 
-Here is an output example from "Display stored data":
+Here is an output example from "Display plot checks":
 
 ![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/display_stored_data_ex.JPG?raw=true)
 
@@ -64,18 +64,13 @@ Currently, the GUI layout is:
 
 I hope that the GUI is straightforward and easy to use.
 
-Some hints about the main clickable parts of the layout:
--> you can use a filter for the actions to be executed; if the filter_button is NOT_PRESSED than only the plots derived from the Input area will be used, otherwise the whole data from catalog.json will be used.
--> you can use whatever coin you want to check the plots; for chia plots (>=k32) though I recommend the chia coin.
-
 If you want fast support (faster than with github issues that is), join our Discord server: https://discord.gg/TnbYb2bTmt
 
 Also, if you want any other hints added here, just let me know via the discord server 🙂
 
 ## WINDOWS usage - instructions
 ### NOTE: No other prerequisites are needed. It works out of the box. ###
-1. Add the paths to the daemon.exe for the coins that you want to use in config.json.
-2. Run the prebuilt .exe and follow the instructions on-screen.   
+Run the prebuilt .exe and follow the instructions on-screen.
 
 ## SUB-MODULE usage - instructions
 ### NOTE: Python 3.x is required ###
