@@ -1,7 +1,10 @@
 import tkinter as tk
+from time import sleep
 from queue import Empty
 from os import path
+import webbrowser
 import sys
+from PIL import Image
 from signal import signal,\
     SIGINT
 from threading import Thread
@@ -12,6 +15,41 @@ from tkinter import ttk, N, S, E, W, END, Label, NONE
 from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end,\
     configuration
+
+class sponsor_reminder():
+    def __init__(self, frame):
+        self.frame = frame
+
+        self.label_sponsor_logo = Label(self.frame, text='Sponsor')
+        self.label_sponsor_logo.grid(column=0, row=0)
+        donation_img = 'donation.gif' if path.isfile('donation.gif') else path.join(sys._MEIPASS, 'donation.gif')
+        info = Image.open(donation_img)
+        self.frameCnt = info.n_frames-3
+        self.sleep_between_frames = 0.1
+        self.frames = [tk.PhotoImage(file=donation_img, format='gif -index %i' % (i)) for i in range(self.frameCnt)]
+
+        self.label_sponsor_text = Label(self.frame,
+                                        text='Found this tool helpfull?'
+                                             '\n\nWant to contribute to its development ?'
+                                             '\n\nYou can make a donation to the author.'
+                                             '\n\nClick this text for more info. Thank you :)',
+                                        font=10)
+        self.label_sponsor_text.grid(column=1, row=0)
+        self.label_sponsor_text.bind("<Button-1>", self.sponsor_link)
+
+        Thread(target=self.sponsor_gif_animation).start()
+
+    def sponsor_link(self,
+                     *args):
+        webbrowser.open_new('https://github.com/ageorge95/LEAF-chia-plot-check-organiser#support')
+
+    def sponsor_gif_animation(self):
+        while True:
+            for frame_index in range(self.frameCnt):
+                frame = self.frames[frame_index]
+                self.label_sponsor_logo.configure(image=frame)
+                sleep(self.sleep_between_frames)
+            sleep(self.sleep_between_frames)
 
 class ConsoleUi(configure_logger_and_queue):
     """Poll messages from a logging queue and display them in a scrolled text widget"""
@@ -157,6 +195,10 @@ class App():
     def __init__(self, root):
         self.root = root
         root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt' if path.isfile('version.txt') else path.join(sys._MEIPASS, 'version.txt') , 'r').read())
+
+        sponsor_frame = ttk.Labelframe(text="Sponsor")
+        sponsor_frame.grid(row=0, column=1, sticky="nsw")
+        self.sponsor_frame = sponsor_reminder(sponsor_frame)
 
         controls_frame = ttk.Labelframe(text="Controls")
         controls_frame.grid(row=0, column=0, sticky="nsw")
