@@ -10,8 +10,6 @@ from logging import getLogger, StreamHandler, Formatter
 from json import load,\
     dump
 from tabulate import tabulate
-from subprocess import run,\
-    PIPE
 from chia_blockchain.chia.plotting.check_plots import check_plots as check_plots_chia
 from chives_blockchain.chives.plotting.check_plots import check_plots as check_plots_chives
 
@@ -43,7 +41,31 @@ class LEAF_back_end():
                                 coin):
         with open(os_path.join(configuration[coin]['root'], 'config', 'config.yaml'), 'r') as yaml_in_handle:
             yaml_as_dict = safe_load(yaml_in_handle)
-            return [os_path.join(entry, plot_filepath) for entry in yaml_as_dict['harvester']['plot_directories'] for plot_filepath in listdir(entry)]
+            valid_paths = []
+            for current_path in yaml_as_dict['harvester']['plot_directories']:
+                if os_path.isdir(current_path):
+                    valid_paths.append(current_path)
+            return list(filter(lambda x:x.endswith('.plot'), [os_path.join(entry, plot_filepath) for entry in valid_paths for plot_filepath in listdir(entry)]))
+
+    def precheck_duplicates(self,
+                            coin):
+        all_plots_data = [[entry, os_path.basename(entry)] for entry in self.get_filenames_from_yaml(coin=coin)]
+        all_plots_filenames = [entry[1] for entry in all_plots_data]
+
+        duplicates = []
+        for plot_data in all_plots_data:
+            if all_plots_filenames.count(plot_data[1]) > 1:
+                duplicates.append(plot_data[0])
+                if plot_data[1] in self.catalog[coin].keys():
+                    del self.catalog[coin][plot_data[1]]
+
+        if duplicates:
+            self._log.warning('Duplicates were found. {} plots were checked. Please resolve the conflicts then restart the tool.'
+                              ' Duplicate plots were automatically removed from the catalog.'.format(len(all_plots_filenames)))
+            return False
+        else:
+            self._log.info('No duplicates were found. {} plots were checked. Continuing'.format(len(all_plots_filenames)))
+            return True
 
     def print_raw_output(self,
                          coin,
@@ -82,17 +104,19 @@ class LEAF_back_end():
 
     def check_plots(self,
                     coin: str,
-                    list_of_plots_fiepaths: list = None,
+                    list_of_plots_filepaths: list = None,
                     ):
-        if not list_of_plots_fiepaths:
-            list_of_plots_fiepaths = self.get_filenames_from_yaml(coin=coin)
+        if not list_of_plots_filepaths:
+            list_of_plots_filepaths = self.get_filenames_from_yaml(coin=coin)
 
-        for entry in list_of_plots_fiepaths:
+        for index, entry in enumerate(list_of_plots_filepaths, 1):
             if not os_path.isfile(entry):
                 self._log.warning('{} is not a valid path. It will be skipped.'.format(entry))
             else:
                 plot_name = os_path.basename(entry)
-                self._log.info('Please wait, now checking plot {}'.format(plot_name))
+                self._log.info('Please wait, now checking plot {}/{}: {}'.format(index,
+                                                                                 len(list_of_plots_filepaths),
+                                                                                 plot_name))
 
                 if coin not in self.catalog.keys():
                     self.catalog[coin] = {}

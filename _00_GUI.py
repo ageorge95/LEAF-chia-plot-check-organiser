@@ -1,18 +1,17 @@
 import tkinter as tk
 from queue import Empty
-from os import path,\
-    listdir
+from os import path
 import sys
 from signal import signal,\
     SIGINT
 from threading import Thread
-from tkinter.scrolledtext import ScrolledText, Text, Scrollbar
-from tkinter.tix import Balloon
+from tkinter.scrolledtext import Text, Scrollbar
 from tkinter import tix, simpledialog
-from tkinter import ttk, N, S, E, W, END, Label, BOTTOM, RIGHT, NONE
+from tkinter import ttk, N, S, E, W, END, Label, NONE
 
 from _00_base import configure_logger_and_queue
-from _00_back_end import LEAF_back_end, configuration
+from _00_back_end import LEAF_back_end,\
+    configuration
 
 class ConsoleUi(configure_logger_and_queue):
     """Poll messages from a logging queue and display them in a scrolled text widget"""
@@ -26,7 +25,7 @@ class ConsoleUi(configure_logger_and_queue):
         # add a button to clear the text
         self.button_clear_console = ttk.Button(self.frame, text='CLEAR CONSOLE', command=self.clear_console)
         self.button_clear_console.grid(column=0, row=0, sticky=W)
-        self.tip_clear_console = Balloon(self.frame)
+        self.tip_clear_console = tix.Balloon(self.frame)
         self.tip_clear_console.bind_widget(self.button_clear_console,balloonmsg="Will clear the text from the console frame.")
 
         # Create a ScrolledText wdiget
@@ -107,18 +106,18 @@ class FormControls(LEAF_back_end,
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
         self.button_display_stored_results.grid(column=0, row=5, sticky=W)
-        self.tip_display_stored_results = Balloon(self.frame)
+        self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
 
         self.button_display_raw_output = ttk.Button(self.frame, text='Display raw output', command=self.master_display_raw_output)
         self.button_display_raw_output.grid(column=0, row=7, sticky=W)
-        self.tip_display_raw_output = Balloon(self.frame)
+        self.tip_display_raw_output = tix.Balloon(self.frame)
         self.tip_display_raw_output.bind_widget(self.button_display_raw_output,balloonmsg="Will display the raw output from the plot check command. Usefull for debugging.")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
         self.button_check_plots.grid(column=0, row=9, sticky=W)
-        self.tip_check_plots = Balloon(self.frame)
+        self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
     def check_coin_selection(self):
@@ -128,17 +127,17 @@ class FormControls(LEAF_back_end,
         return True
 
     def master_display_stored_results(self):
-        if self.check_coin_selection():
+        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             self.print_stored_results(coin=self.coin_to_use.get())
 
     def master_display_raw_output(self):
-        if self.check_coin_selection():
+        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             self.print_raw_output(coin=self.coin_to_use.get(),
                                   filter_string=simpledialog.askstring(title="Input Required",
                                                                        prompt="Please input the name of the plot for which you want to display the raw output:"))
 
     def master_check_plots(self):
-        if self.check_coin_selection():
+        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             def action():
                 self.combobox_coin_to_use.configure(state='disabled')
                 self.button_display_stored_results.configure(state='disabled')
