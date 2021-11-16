@@ -22,4 +22,4 @@ keyring
 keyrings.cryptfile
 watchdog
 websockets
-PIL
+pillow
