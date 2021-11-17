@@ -72,7 +72,7 @@ class LEAF_back_end():
 
             if duplicates:
                 self._log.warning('Duplicates were found. {} plots were checked. Please resolve the conflicts then restart the tool.'
-                                  ' Duplicate plots were automatically removed from the catalog.'.format(len(all_plots_filenames)))
+                                  ' Duplicate plots were automatically removed from the catalog. Conflicts:'.format(len(all_plots_filenames))+ '\n'.join(duplicates))
                 return False
             else:
                 self._log.info('No duplicates were found. {} plots were checked. Continuing'.format(len(all_plots_filenames)))
