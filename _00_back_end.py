@@ -66,8 +66,9 @@ class LEAF_back_end():
             for plot_data in all_plots_data:
                 if all_plots_filenames.count(plot_data[1]) > 1:
                     duplicates.append(plot_data[0])
-                    if plot_data[1] in self.catalog[coin].keys():
-                        del self.catalog[coin][plot_data[1]]
+                    if coin in self.catalog.keys():
+                        if plot_data[1] in self.catalog[coin].keys():
+                            del self.catalog[coin][plot_data[1]]
 
             if duplicates:
                 self._log.warning('Duplicates were found. {} plots were checked. Please resolve the conflicts then restart the tool.'
