@@ -166,13 +166,18 @@ class FormControls(LEAF_back_end,
 
     def master_display_stored_results(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
-            self.print_stored_results(coin=self.coin_to_use.get())
+            def action():
+                self.print_stored_results(coin=self.coin_to_use.get())
+            Thread(target=action).start()
 
     def master_display_raw_output(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
-            self.print_raw_output(coin=self.coin_to_use.get(),
-                                  filter_string=simpledialog.askstring(title="Input Required",
-                                                                       prompt="Please input the name of the plot for which you want to display the raw output:"))
+            def action():
+                self.print_raw_output(coin=self.coin_to_use.get(),
+                                      filter_string=simpledialog.askstring(title="Input Required",
+                                                                           prompt="Please input the name of the plot for which you want to display the raw output:"))
+
+            Thread(target=action).start()
 
     def master_check_plots(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
