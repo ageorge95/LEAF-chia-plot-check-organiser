@@ -8,6 +8,7 @@ from PIL import Image
 from signal import signal,\
     SIGINT
 from threading import Thread
+from logging import getLogger
 from tkinter.scrolledtext import Text, Scrollbar
 from tkinter import tix, simpledialog
 from tkinter import ttk, N, S, E, W, END, Label, NONE
@@ -15,6 +16,34 @@ from tkinter import ttk, N, S, E, W, END, Label, NONE
 from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end,\
     configuration
+
+class buttons_state_change():
+    combobox_coin_to_use: ttk.Combobox
+    button_display_stored_results: ttk.Button
+    button_display_raw_output: ttk.Button
+    button_check_plots: ttk.Button
+    _log: getLogger
+
+    def __init__(self):
+
+        super(buttons_state_change, self).__init__()
+
+    def get_buttons_reference(self):
+
+        self.buttons = [self.combobox_coin_to_use,
+                        self.button_display_stored_results,
+                        self.button_display_raw_output,
+                        self.button_check_plots
+                        ]
+    def disable_all_buttons(self):
+        self.get_buttons_reference()
+        [button.configure(state='disabled') for button in self.buttons]
+        self._log.info('Controls are now disabled until the operation is done. Please wait ...')
+
+    def enable_all_buttons(self):
+        self.get_buttons_reference()
+        [button.configure(state='enabled') for button in self.buttons]
+        self._log.info('Controls are now enabled')
 
 class sponsor_reminder():
     def __init__(self, frame):
@@ -112,7 +141,8 @@ class ConsoleUi(configure_logger_and_queue):
         self.scrolled_text.delete('1.0', END)
         self.scrolled_text.configure(state='disabled')
 
-class FormControls(LEAF_back_end,
+class FormControls(buttons_state_change,
+                   LEAF_back_end,
                    configure_logger_and_queue
                    ):
 
@@ -167,32 +197,38 @@ class FormControls(LEAF_back_end,
     def master_display_stored_results(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             def action():
+                self.disable_all_buttons()
                 self.print_stored_results(coin=self.coin_to_use.get())
+                self.enable_all_buttons()
             Thread(target=action).start()
 
     def master_display_raw_output(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
+            def plot_name(): # MUST be in the same thread, otherwise the new window trick must be done
+                newWin = tix.Tk()
+                newWin.withdraw()
+                to_return = simpledialog.askstring(title="Input Required",
+                                                   prompt="Please input the name of the plot for which you want to display the raw output:",
+                                                   parent=newWin)
+                newWin.destroy()
+                return to_return
+
             def action():
+                self.disable_all_buttons()
                 self.print_raw_output(coin=self.coin_to_use.get(),
-                                      filter_string=simpledialog.askstring(title="Input Required",
-                                                                           prompt="Please input the name of the plot for which you want to display the raw output:"))
+                                      filter_string=plot_name())
+                self.enable_all_buttons()
 
             Thread(target=action).start()
 
     def master_check_plots(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             def action():
-                self.combobox_coin_to_use.configure(state='disabled')
-                self.button_display_stored_results.configure(state='disabled')
-                self.button_display_raw_output.configure(state='disabled')
-                self.button_check_plots.configure(state='disabled')
-                self._log.info('Checking the plots. Controls are now disabled until the operation is done. Please wait ...')
+                self._log.info('Checking the plots.')
+                self.disable_all_buttons()
                 self.check_plots(coin=self.coin_to_use.get())
-                self._log.info('Plots check completed ! Controls are now enabled.')
-                self.combobox_coin_to_use.configure(state='normal')
-                self.button_display_stored_results.configure(state='normal')
-                self.button_display_raw_output.configure(state='normal')
-                self.button_check_plots.configure(state='normal')
+                self._log.info('Plots check completed.')
+                self.enable_all_buttons()
             Thread(target=action).start()
 
 class App():
