@@ -282,6 +282,7 @@ class App():
 
 def main():
     root = tix.Tk()
+    root.resizable(False, False)
     app = App(root)
     app.root.mainloop()
 
