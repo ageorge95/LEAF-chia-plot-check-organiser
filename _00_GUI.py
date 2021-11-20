@@ -250,7 +250,7 @@ class FormControls(buttons_label_state_change,
                 self._log.info('Checking the plots.')
                 self.disable_all_buttons()
                 self.check_plots(coin=self.coin_to_use.get())
-                self._log.info('Plots check completed.')
+                self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
                 self.enable_all_buttons()
                 self.backend_label_free()
             Thread(target=action).start()
