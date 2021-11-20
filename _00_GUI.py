@@ -17,16 +17,17 @@ from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end,\
     configuration
 
-class buttons_state_change():
+class buttons_label_state_change():
     combobox_coin_to_use: ttk.Combobox
     button_display_stored_results: ttk.Button
     button_display_raw_output: ttk.Button
     button_check_plots: ttk.Button
+    label_backend_status: ttk.Label
     _log: getLogger
 
     def __init__(self):
 
-        super(buttons_state_change, self).__init__()
+        super(buttons_label_state_change, self).__init__()
 
     def get_buttons_reference(self):
 
@@ -45,6 +46,15 @@ class buttons_state_change():
         [button.configure(state='enabled') for button in self.buttons]
         self._log.info('Controls are now enabled')
 
+    def backend_label_free(self):
+        self.label_backend_status.configure(text="Doing nothing ...",
+                                            fg='#33cc33')
+
+    def backend_label_busy(self,
+                           text: str):
+        self.label_backend_status.configure(text=text,
+                                            fg='#ff3300')
+
 class sponsor_reminder():
     def __init__(self, frame):
         self.frame = frame
@@ -58,7 +68,7 @@ class sponsor_reminder():
         self.frames = [tk.PhotoImage(file=donation_img, format='gif -index %i' % (i)) for i in range(self.frameCnt)]
 
         self.label_sponsor_text = Label(self.frame,
-                                        text='Found this tool helpfull?'
+                                        text='Found this tool helpful?'
                                              '\n\nWant to contribute to its development ?'
                                              '\n\nYou can make a donation to the author.'
                                              '\n\nClick this text for more info. Thank you :)',
@@ -141,7 +151,7 @@ class ConsoleUi(configure_logger_and_queue):
         self.scrolled_text.delete('1.0', END)
         self.scrolled_text.configure(state='disabled')
 
-class FormControls(buttons_state_change,
+class FormControls(buttons_label_state_change,
                    LEAF_back_end,
                    configure_logger_and_queue
                    ):
@@ -166,8 +176,16 @@ class FormControls(buttons_state_change,
         self.label_coin_to_use.grid(column=0, row=1)
         self.combobox_coin_to_use.grid(column=0, row=2)
 
-        self.separator_filtering = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering.grid(column=0, row=3, sticky=(W, E), pady=10)
+        self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
+        self.label_backend_status_notify.grid(column=2, row=1)
+        self.label_backend_status = Label(self.frame, text="Doing nothing ...", fg='#33cc33')
+        self.label_backend_status.grid(column=2, row=2)
+
+        self.separator_filtering_v = ttk.Separator(self.frame, orient='vertical')
+        self.separator_filtering_v.grid(column=1, row=0, rowspan=10, sticky=(N, S))
+
+        self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
+        self.separator_filtering_h.grid(column=0, row=3, columnspan=2, sticky=(W, E))
 
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the buttons below for more info.')
         self.label_hover_hints.grid(column=0, row=4)
@@ -198,8 +216,10 @@ class FormControls(buttons_state_change,
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             def action():
                 self.disable_all_buttons()
+                self.backend_label_busy(text='Busy with displaying stored results !')
                 self.print_stored_results(coin=self.coin_to_use.get())
                 self.enable_all_buttons()
+                self.backend_label_free()
             Thread(target=action).start()
 
     def master_display_raw_output(self):
@@ -215,20 +235,24 @@ class FormControls(buttons_state_change,
 
             def action():
                 self.disable_all_buttons()
+                self.backend_label_busy(text='Busy with displaying raw output !')
                 self.print_raw_output(coin=self.coin_to_use.get(),
                                       filter_string=plot_name())
                 self.enable_all_buttons()
+                self.backend_label_free()
 
             Thread(target=action).start()
 
     def master_check_plots(self):
         if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
             def action():
+                self.backend_label_busy(text='Busy with checking plots !')
                 self._log.info('Checking the plots.')
                 self.disable_all_buttons()
                 self.check_plots(coin=self.coin_to_use.get())
                 self._log.info('Plots check completed.')
                 self.enable_all_buttons()
+                self.backend_label_free()
             Thread(target=action).start()
 
 class App():
