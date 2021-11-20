@@ -278,7 +278,8 @@ class App():
         signal(SIGINT, self.quit)
 
     def quit(self):
-        self.root.destroy()
+        # self.root.destroy()
+        sys.exit()
 
 def main():
     root = tix.Tk()
