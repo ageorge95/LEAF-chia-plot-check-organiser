@@ -259,7 +259,8 @@ class App():
 
     def __init__(self, root):
         self.root = root
-        root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt' if path.isfile('version.txt') else path.join(sys._MEIPASS, 'version.txt') , 'r').read())
+        self.root.title('LEAF-chia-plot-check-organiser | ' + open('version.txt' if path.isfile('version.txt') else path.join(sys._MEIPASS, 'version.txt') , 'r').read())
+        self.root.iconbitmap('icon.ico' if path.isfile('icon.ico') else path.join(sys._MEIPASS, 'icon.ico'))
 
         sponsor_frame = ttk.Labelframe(text="Sponsor")
         sponsor_frame.grid(row=0, column=1, sticky="nsw")
