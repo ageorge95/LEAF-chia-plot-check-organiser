@@ -9,7 +9,7 @@ from signal import signal,\
     SIGINT
 from threading import Thread
 from logging import getLogger
-from tkinter.scrolledtext import Text, Scrollbar
+from tkinter.scrolledtext import Text, Scrollbar, ScrolledText
 from tkinter import tix, simpledialog
 from tkinter import ttk, N, S, E, W, END, Label, NONE
 
@@ -111,7 +111,7 @@ class ConsoleUi(configure_logger_and_queue):
         self.v_scroll = Scrollbar(self.frame, orient='vertical')
         self.v_scroll.grid(row=1, column=1, sticky=(N, S))
 
-        self.scrolled_text = Text(frame, state='disabled', width=200, height=25, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
+        self.scrolled_text = Text(frame, state='disabled', width=100, height=25, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
         self.scrolled_text.grid(row=1, column=0, sticky=(N, S, W, E))
         self.scrolled_text.configure(font='TkFixedFont')
         self.scrolled_text.tag_config('INFO', foreground='black')
@@ -255,6 +255,20 @@ class FormControls(buttons_label_state_change,
                 self.backend_label_free()
             Thread(target=action).start()
 
+class FormInput():
+
+    def __init__(self, frame):
+        self.frame = frame
+
+        self.scrolled_text_input = ScrolledText(self.frame, width=58, height=28)
+        self.scrolled_text_input.grid(row=0, column=0, sticky=(N, S, W, E))
+        self.scrolled_text_input.configure(font='TkFixedFont')
+        self.tip_text_input = tix.Balloon(self.frame)
+        self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert here the mnemonic (1 mnemonic 1 line) or the wallet addresses (x addresses 1 line).")
+
+    def return_input(self):
+        return self.scrolled_text_input.get("1.0", END).split('\n')
+
 class App():
 
     def __init__(self, root):
@@ -263,7 +277,7 @@ class App():
         self.root.iconbitmap('icon.ico' if path.isfile('icon.ico') else path.join(sys._MEIPASS, 'icon.ico'))
 
         sponsor_frame = ttk.Labelframe(text="Sponsor")
-        sponsor_frame.grid(row=0, column=1, sticky="nsw")
+        sponsor_frame.grid(row=0, column=1, sticky="e")
         self.sponsor_frame = sponsor_reminder(sponsor_frame)
 
         controls_frame = ttk.Labelframe(text="Controls")
@@ -271,8 +285,12 @@ class App():
         self.controls_frame = FormControls(controls_frame)
 
         console_frame = ttk.Labelframe(text="Console")
-        console_frame.grid(row=1, column=0, sticky="nsew", columnspan=2)
+        console_frame.grid(row=1, column=0, sticky="nsew")
         self.console_frame = ConsoleUi(console_frame)
+
+        input_frame = ttk.Labelframe(text="Input")
+        input_frame.grid(row=1, column=1, sticky="nsew")
+        self.input_frame = FormInput(input_frame)
 
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
         self.root.bind('<Control-q>', self.quit)
