@@ -1,56 +1,26 @@
 # LEAF-chia-plot-check-organiser
 Tool used to keep a history of plot checks made with chia or chia forks; it can also display various plot related info.
 
-Sponsored by HDDcoin, an eco-friendly decentralization blockchain based on the Proof of Space and Time (PoST) consensus - https://hddcoin.org/ - Check them out 🙂
-
-![alt text](https://raw.githubusercontent.com/ageorge95/pitchFORK-chia-forks-ports-check/main/ReadMe_res/hdd_coin_spinning_logo.png?raw=true)
-
-### BLOCKCHAIN RESOURCES:
-- Website: https://hddcoin.org/
-- Explorer: https://alltheblocks.net/hddcoin
-- Calculator: https://hddcoinforkscalculator.com/hddcoin
-- HDDcoin DB: https://hddcoin.org/downloads/blockchain_v1_mainnet.sqlite
-
-### COMMUNITIES AND SOCIAL CHANNELS:
-- Discord: https://discord.gg/AZdGSFnqAR
-- Twitter: https://twitter.com/hddcoin
-- YouTube: https://www.youtube.com/channel/UChJY3YEOTDBvFJ0vLFEc1Sw
-- Facebook: https://www.facebook.com/HDDcoinNetwork
-- Telegram: https://t.me/HDDcoin_Network
-- Reddit: https://www.reddit.com/r/HDDcoinNetwork
-
 ## Other Contributors
 
 ![alt text](https://c.tenor.com/FDwYMy302gMAAAAM/tumbleweed-silence.gif?raw=true)
 
 # High level overview
-The tool will check the plots, using one of the pre-configured cois.
+The tool will check the plots, using one of the pre-configured coins (XCH or XCC).
 
-The tool is using the direct logic from the included coins, and the plot filepaths are read directly from the config.yaml, no user input is required.
+On subsequent executions, only new plots (that are not present in LEAF_catalog.json) will be checked.
 
-On subsequent executions, only new plots (that are not present in catalog.json) will be checked.
+The history is saved, by default, into a LEAF_catalog.json file, in the root folder of the tool's execution.
 
-The history is saved, by default, into a catalog.json file, in the root folder of the tool's execution.
-
-It can display a table with all the plots, and the most important part, if the check is passed or failed, and the check's score.
+It can display a table with all the plots, and the most important part, if the check is passed or failed, and the check's score (the total_proofs/nr_of_challenges ratio).
 
 # Feedback/ Contribution
 - Please post any issues you encountered or any feature requests in the issues tab.
 - Also, feel free to contribute to the tool's development with a PR.
 
-# Output example
+# Short overview of the GUI
 
-Here is an output example from "Check plots":
-
-![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/plot_check_ex.jpg?raw=true)
-
-Here is an output example from "Display plot checks":
-
-![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/display_stored_data_ex.JPG?raw=true)
-
-Here is an output example from "Display raw output":
-
-![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/display_raw_data_ex.JPG?raw=true)
+![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/overall.jpg?raw=true)
 
 NOTE: The output is present in the GUI's output, in the runtime_log.log and returned to the calling method, if used as a sub-module.
 
@@ -58,26 +28,9 @@ NOTE: The output is present in the GUI's output, in the runtime_log.log and retu
 
 The tool can be used via its GUI or as a submodule in your python scripts.
 
-Currently, the GUI layout is:
-
-![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/layout.jpg?raw=true)
-
-I hope that the GUI is straightforward and easy to use.
-
 If you want fast support (faster than with github issues that is), join our Discord server: https://discord.gg/TnbYb2bTmt
 
-Also, if you want any other hints added here, just let me know via the discord server 🙂
-
-## WINDOWS usage - instructions
-### NOTE: No other prerequisites are needed. It works out of the box. ###
-Run the prebuilt .exe and follow the instructions on-screen.
-
-## SUB-MODULE usage - instructions
-### NOTE: Python 3.x is required ###
-1. Simply add the repo as a sub-module
-2. Import the LEAF_back_end class from _00_back_end.py
-3. Create an object from the class above, where you can overwrite the root and name of the output json, in the consturctor.
-4. Call the needed methods with the required args
+Also, if you want any other hints added here, just let me know via our discord server 🙂
 
 # Support
 Found this project useful? Send your ❤ in any form you can 🙂. Please contact me if you donated and want to be added to the contributors list !
