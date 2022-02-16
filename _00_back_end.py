@@ -251,7 +251,7 @@ class LEAF_back_end():
                         self._log.warning(f'Plot already checked in the past, with { nr_challenges } challenges. Skipping ...')
 
                 progress_callback(progress={'maximum': len(self.all_plots_paths),
-                                            'value': plot_index + 1}
+                                            'value': plot_index}
                                                   )
         except:
             self._log.error('Oh snap ! An error has occurred while checking the plots:\n{}'.format(format_exc(chain=False)))
