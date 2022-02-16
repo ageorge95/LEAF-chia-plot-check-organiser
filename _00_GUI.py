@@ -22,7 +22,6 @@ from _00_back_end import LEAF_back_end,\
 class buttons_label_state_change():
     combobox_plot_type_to_use: ttk.Combobox
     button_display_stored_results: ttk.Button
-    button_display_raw_output: ttk.Button
     button_check_plots: ttk.Button
     label_backend_status: ttk.Label
     _log: getLogger
@@ -35,7 +34,6 @@ class buttons_label_state_change():
 
         self.buttons = [self.combobox_plot_type_to_use,
                         self.button_display_stored_results,
-                        self.button_display_raw_output,
                         self.button_check_plots
                         ]
     def disable_all_buttons(self):
@@ -183,11 +181,10 @@ class FormControls(buttons_label_state_change,
         self.combobox_plot_type_to_use.grid(column=0, row=2)
         
         self.label_challenges_to_check = Label(self.frame, text='Nr of Challenges to check')
-        self.challenges_to_check = tk.StringVar()
-        self.combobox_challenges_to_check = Entry(self.frame)
-        self.combobox_challenges_to_check.insert(END, '100')
+        self.entry_challenges_to_check = Entry(self.frame)
+        self.entry_challenges_to_check.insert(END, '100')
         self.label_challenges_to_check.grid(column=1, row=1)
-        self.combobox_challenges_to_check.grid(column=1, row=2)
+        self.entry_challenges_to_check.grid(column=1, row=2)
 
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
         self.label_backend_status_notify.grid(column=4, row=1)
@@ -217,11 +214,7 @@ class FormControls(buttons_label_state_change,
     def refresh_input_address(self,
                               *args):
         selected_plot_type = self.combobox_plot_type_to_use.get()
-        import_path = None
-        if selected_plot_type == 'chia__XCH':
-            import_path = path.join(path.expanduser("~"), '.chia', 'mainnet', 'config', 'config.yaml')
-        if selected_plot_type == 'chives__XCC':
-            import_path = path.join(path.expanduser("~"), '.chives', 'mainnet', 'config', 'config.yaml')
+        import_path = path.join(configuration[selected_plot_type]['root'], 'config', 'config.yaml')
         self.input_frame.label_import_paths['text'] = import_path
 
     def check_plot_type_selection(self):
@@ -231,43 +224,26 @@ class FormControls(buttons_label_state_change,
         return True
 
     def master_display_stored_results(self):
-        if self.check_plot_type_selection() and self.precheck_duplicates(self.plot_type_to_use.get()):
+        if self.check_plot_type_selection():
             def action():
                 self.disable_all_buttons()
                 self.backend_label_busy(text='Busy with displaying stored results !')
-                self.print_stored_results(coin=self.plot_type_to_use.get())
+                self.parse_input_and_get_paths(self.input_frame.return_input())
+                self.print_stored_results(plot_type=self.plot_type_to_use.get())
                 self.enable_all_buttons()
                 self.backend_label_free()
-            Thread(target=action).start()
-
-    def master_display_raw_output(self):
-        if self.check_plot_type_selection() and self.precheck_duplicates(self.plot_type_to_use.get()):
-            def plot_name(): # MUST be in the same thread, otherwise the new window trick must be done
-                newWin = tix.Tk()
-                newWin.withdraw()
-                to_return = simpledialog.askstring(title="Input Required",
-                                                   prompt="Please input the name of the plot for which you want to display the raw output:",
-                                                   parent=newWin)
-                newWin.destroy()
-                return to_return
-
-            def action():
-                self.disable_all_buttons()
-                self.backend_label_busy(text='Busy with displaying raw output !')
-                self.print_raw_output(coin=self.plot_type_to_use.get(),
-                                      filter_string=plot_name())
-                self.enable_all_buttons()
-                self.backend_label_free()
-
             Thread(target=action).start()
 
     def master_check_plots(self):
-        if self.check_plot_type_selection() and self.precheck_duplicates(self.plot_type_to_use.get()):
+        if self.check_plot_type_selection():
             def action():
                 self.backend_label_busy(text='Busy with checking plots !')
                 self._log.info('Checking the plots.')
                 self.disable_all_buttons()
-                self.check_plots(coin=self.plot_type_to_use.get())
+                self.parse_input_and_get_paths(self.input_frame.return_input())
+                self.check_plots(plot_type=self.plot_type_to_use.get(),
+                                 nr_challenges=int(self.entry_challenges_to_check.get()),
+                                 progress_callback=self.progress_frame.update_progress_callback)
                 self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
                 self.enable_all_buttons()
                 self.backend_label_free()
@@ -300,7 +276,6 @@ class FormInput():
                 with open(self.label_import_paths.cget("text"), 'r') as input_yaml_config:
                     yaml_config = safe_load(input_yaml_config)
                 plots_paths = yaml_config['harvester']['plot_directories']
-                # self.scrolled_text_input.insert(tk.INSERT, "Some text")
                 self.scrolled_text_input.delete('1.0', tk.END)
                 self.scrolled_text_input.insert(tk.INSERT, '\n'.join(plots_paths))
                 self._log.info('Paths imported successfully !')
@@ -330,13 +305,14 @@ class ProgressBar():
         self.progress.grid(column=0, row=3)
 
     def update_progress_callback(self,
-                                subprogress,
-                                progress):
-        self.subprogress['maximum'] = subprogress['maximum']
-        self.subprogress['value'] = subprogress['value']
+                                **kwargs):
+        if kwargs.get('subprogress'):
+            self.subprogress['maximum'] = kwargs.get('subprogress')['maximum']
+            self.subprogress['value'] = kwargs.get('subprogress')['value']
 
-        self.progress['maximum'] = progress['maximum']
-        self.progress['value'] = progress['value']
+        if kwargs.get('progress'):
+            self.progress['maximum'] = kwargs.get('progress')['maximum']
+            self.progress['value'] = kwargs.get('progress')['value']
 
 class App():
 
