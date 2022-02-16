@@ -96,7 +96,7 @@ class LEAF_back_end():
             if os_path.isfile(entry):
                 self.all_plots_paths.append(entry)
             elif os_path.isdir(entry):
-                self.all_plots_paths += list(filter(lambda x:x.endswith('.plot'), [os.path.join(entry, filename) for filename in listdir(entry)]))
+                self.all_plots_paths += list(filter(lambda x:x.endswith('.plot'), [os_path.join(entry, filename) for filename in listdir(entry)]))
             else:
                 self._log.warning(f"{ entry } is neither a valid file nor a valid path !")
         self._log.info(f'Discovered { len(self.all_plots_paths) } plots in the provided filepaths & folder paths.')
@@ -127,13 +127,14 @@ class LEAF_back_end():
                 sorted_catalog = dict(sorted(self.catalog[plot_type].items(), key=lambda x: (x[1][-1]['proofs_found'] / x[1][-1]['challenges_tried'])))
 
                 # reporting phase
-                headers = ['Plot filepath', 'Proofs Ratio', 'Valid_Test']
+                headers = ['Plot filepath', 'Challenges', 'Proofs Ratio', 'Valid_Test']
                 table_rows = []
 
                 for result in sorted_catalog.items():
                     if os_path.basename(result[1][-1]['path']) in [os_path.basename(entry) for entry in self.all_plots_paths]:
                         ratio = result[1][-1]['proofs_found'] / result[1][-1]['challenges_tried']
                         row = [result[1][-1]['path'],
+                               result[1][-1]['challenges_tried'],
                                ratio,
                                'GOOD' if ratio != 0 else 'BAD']
 
