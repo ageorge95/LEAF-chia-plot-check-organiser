@@ -155,6 +155,13 @@ class LEAF_back_end():
         try:
             self.reload_catalog()
 
+            # reset the progress bar
+            progress_callback(subprogress={'maximum': 0,
+                                            'value': 0},
+                              progress={'maximum': 0,
+                                            'value': 0}
+                                                  )
+
             for plot_index, entry in enumerate(self.all_plots_paths, 1):
                 if not os_path.isfile(entry):
                     self._log.warning('{} is not a valid path. It will be skipped.'.format(entry))
