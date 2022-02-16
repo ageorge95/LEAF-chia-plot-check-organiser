@@ -113,7 +113,7 @@ class ConsoleUi(configure_logger_and_queue):
         self.v_scroll = Scrollbar(self.frame, orient='vertical')
         self.v_scroll.grid(row=1, column=1, sticky=(N, S))
 
-        self.scrolled_text = Text(frame, state='disabled', width=100, height=25, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
+        self.scrolled_text = Text(frame, state='disabled', width=100, height=28, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
         self.scrolled_text.grid(row=1, column=0, sticky=(N, S, W, E))
         self.scrolled_text.configure(font='TkFixedFont')
         self.scrolled_text.tag_config('INFO', foreground='black')
@@ -160,11 +160,13 @@ class FormControls(buttons_label_state_change,
 
     def __init__(self,
                  frame,
-                 input_frame):
+                 input_frame,
+                 progress_frame):
         super(FormControls, self).__init__()
 
         self.frame = frame
         self.input_frame = input_frame
+        self.progress_frame = progress_frame
 
         self.label_plot_type_to_use = Label(self.frame, text='Type of plots:')
         self.plot_type_to_use = tk.StringVar()
@@ -198,7 +200,7 @@ class FormControls(buttons_label_state_change,
         self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
         self.separator_filtering_h.grid(column=0, row=4, columnspan=3, sticky=(W, E), pady=(10,10))
 
-        self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the buttons below for more info.')
+        self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
         self.label_hover_hints.grid(column=0, row=5, columnspan=2)
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
@@ -206,11 +208,6 @@ class FormControls(buttons_label_state_change,
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
-
-        self.button_display_raw_output = ttk.Button(self.frame, text='Display raw output', command=self.master_display_raw_output)
-        self.button_display_raw_output.grid(column=0, row=8, sticky=W, columnspan=2)
-        self.tip_display_raw_output = tix.Balloon(self.frame)
-        self.tip_display_raw_output.bind_widget(self.button_display_raw_output,balloonmsg="Will display the raw output from the plot check command. Usefull for debugging.")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
         self.button_check_plots.grid(column=0, row=10, sticky=W, columnspan=2)
@@ -293,7 +290,7 @@ class FormInput():
         self.scrolled_text_input.grid(row=3, column=0, sticky=(N, S, W, E))
         self.scrolled_text_input.configure(font='TkFixedFont')
         self.tip_text_input = tix.Balloon(self.frame)
-        self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert here the mnemonic (1 mnemonic 1 line) or the wallet addresses (x addresses 1 line).")
+        self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert plot filepaths or folder paths containg plots (1 entry per line).")
 
     def import_paths(self):
         if self.label_import_paths.cget("text") != 'Select an plot type to see the import path ...':
@@ -306,12 +303,40 @@ class FormInput():
                 # self.scrolled_text_input.insert(tk.INSERT, "Some text")
                 self.scrolled_text_input.delete('1.0', tk.END)
                 self.scrolled_text_input.insert(tk.INSERT, '\n'.join(plots_paths))
+                self._log.info('Paths imported successfully !')
             except:
                 self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+
             self.button_import_paths.configure(state='normal')
 
     def return_input(self):
         return self.scrolled_text_input.get("1.0", END).split('\n')
+
+class ProgressBar():
+
+    def __init__(self, frame):
+        self.frame = frame
+
+        self._log = getLogger()
+
+        self.label_subprogress = Label(self.frame, text='Current task progress')
+        self.label_subprogress.grid(column=0, row=0)
+        self.subprogress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
+        self.subprogress.grid(column=0, row=1)
+
+        self.label_progress = Label(self.frame, text='Overall progress')
+        self.label_progress.grid(column=0, row=2)
+        self.progress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
+        self.progress.grid(column=0, row=3)
+
+    def update_progress_callback(self,
+                                subprogress,
+                                progress):
+        self.subprogress['maximum'] = subprogress['maximum']
+        self.subprogress['value'] = subprogress['value']
+
+        self.progress['maximum'] = progress['maximum']
+        self.progress['value'] = progress['value']
 
 class App():
 
@@ -324,17 +349,22 @@ class App():
         sponsor_frame.grid(row=0, column=1, sticky="w")
         self.sponsor_frame = sponsor_reminder(sponsor_frame)
 
+        progress_frame = ttk.Labelframe(text="Progress")
+        progress_frame.grid(row=1, column=0, columnspan = 3, sticky='nsew')
+        self.progress_frame = ProgressBar(progress_frame)
+
         input_frame = ttk.Labelframe(text="Input")
-        input_frame.grid(row=1, column=1, sticky="nsew")
+        input_frame.grid(row=2, column=1, sticky="nsew")
         self.input_frame = FormInput(input_frame)
 
         controls_frame = ttk.Labelframe(text="Controls")
         controls_frame.grid(row=0, column=0, sticky="nsw")
         self.controls_frame = FormControls(controls_frame,
-                                           self.input_frame)
+                                           self.input_frame,
+                                           self.progress_frame)
 
         console_frame = ttk.Labelframe(text="Console")
-        console_frame.grid(row=1, column=0, sticky="nsew")
+        console_frame.grid(row=2, column=0, sticky="nsew")
         self.console_frame = ConsoleUi(console_frame)
 
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
