@@ -9,18 +9,19 @@ from signal import signal,\
     SIGINT
 from threading import Thread
 from logging import getLogger
-from tkinter.scrolledtext import Text, Scrollbar
-from tkinter import tix, simpledialog
+from tkinter.scrolledtext import Text, Scrollbar, ScrolledText
+from tkinter import tix, simpledialog, Entry
 from tkinter import ttk, N, S, E, W, END, Label, NONE
+from yaml import safe_load
+from traceback import format_exc
 
 from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end,\
     configuration
 
 class buttons_label_state_change():
-    combobox_coin_to_use: ttk.Combobox
+    combobox_plot_type_to_use: ttk.Combobox
     button_display_stored_results: ttk.Button
-    button_display_raw_output: ttk.Button
     button_check_plots: ttk.Button
     label_backend_status: ttk.Label
     _log: getLogger
@@ -31,9 +32,8 @@ class buttons_label_state_change():
 
     def get_buttons_reference(self):
 
-        self.buttons = [self.combobox_coin_to_use,
+        self.buttons = [self.combobox_plot_type_to_use,
                         self.button_display_stored_results,
-                        self.button_display_raw_output,
                         self.button_check_plots
                         ]
     def disable_all_buttons(self):
@@ -111,7 +111,7 @@ class ConsoleUi(configure_logger_and_queue):
         self.v_scroll = Scrollbar(self.frame, orient='vertical')
         self.v_scroll.grid(row=1, column=1, sticky=(N, S))
 
-        self.scrolled_text = Text(frame, state='disabled', width=200, height=25, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
+        self.scrolled_text = Text(frame, state='disabled', width=100, height=28, wrap=NONE, xscrollcommand=self.h_scroll.set, yscrollcommand=self.v_scroll.set)
         self.scrolled_text.grid(row=1, column=0, sticky=(N, S, W, E))
         self.scrolled_text.configure(font='TkFixedFont')
         self.scrolled_text.tag_config('INFO', foreground='black')
@@ -157,103 +157,162 @@ class FormControls(buttons_label_state_change,
                    ):
 
     def __init__(self,
-                 frame):
+                 frame,
+                 input_frame,
+                 progress_frame):
         super(FormControls, self).__init__()
 
         self.frame = frame
+        self.input_frame = input_frame
+        self.progress_frame = progress_frame
 
-        self.label_coin_to_use = Label(self.frame, text='Coin to be used:')
-        self.coin_to_use = tk.StringVar()
-        self.combobox_coin_to_use = ttk.Combobox(
+        self.label_plot_type_to_use = Label(self.frame, text='Type of plots:')
+        self.plot_type_to_use = tk.StringVar()
+        self.combobox_plot_type_to_use = ttk.Combobox(
             self.frame,
-            textvariable=self.coin_to_use,
+            textvariable=self.plot_type_to_use,
             width=15,
             state='readonly',
             values=list(configuration.keys())
         )
-        self.combobox_coin_to_use.bind("<<ComboboxSelected>>")
-        self.combobox_coin_to_use.set('SELECT A COIN')
-        self.label_coin_to_use.grid(column=0, row=1)
-        self.combobox_coin_to_use.grid(column=0, row=2)
+        self.combobox_plot_type_to_use.bind("<<ComboboxSelected>>", self.refresh_input_address)
+        self.combobox_plot_type_to_use.set('PLOT TYPE')
+        self.label_plot_type_to_use.grid(column=0, row=1)
+        self.combobox_plot_type_to_use.grid(column=0, row=2)
+        
+        self.label_challenges_to_check = Label(self.frame, text='Nr of Challenges to check')
+        self.entry_challenges_to_check = Entry(self.frame)
+        self.entry_challenges_to_check.insert(END, '100')
+        self.label_challenges_to_check.grid(column=1, row=1)
+        self.entry_challenges_to_check.grid(column=1, row=2)
 
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
-        self.label_backend_status_notify.grid(column=2, row=1)
+        self.label_backend_status_notify.grid(column=4, row=1)
         self.label_backend_status = Label(self.frame, text="Doing nothing ...", fg='#33cc33')
-        self.label_backend_status.grid(column=2, row=2)
+        self.label_backend_status.grid(column=4, row=2)
 
         self.separator_filtering_v = ttk.Separator(self.frame, orient='vertical')
-        self.separator_filtering_v.grid(column=1, row=0, rowspan=10, sticky=(N, S))
+        self.separator_filtering_v.grid(column=3, row=0, rowspan=15, sticky=(N, S))
 
         self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering_h.grid(column=0, row=3, columnspan=2, sticky=(W, E))
+        self.separator_filtering_h.grid(column=0, row=4, columnspan=3, sticky=(W, E), pady=(10,10))
 
-        self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the buttons below for more info.')
-        self.label_hover_hints.grid(column=0, row=4)
+        self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
+        self.label_hover_hints.grid(column=0, row=5, columnspan=2)
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=5, sticky=W)
+        self.button_display_stored_results.grid(column=0, row=6, sticky=W, columnspan=2)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
 
-        self.button_display_raw_output = ttk.Button(self.frame, text='Display raw output', command=self.master_display_raw_output)
-        self.button_display_raw_output.grid(column=0, row=7, sticky=W)
-        self.tip_display_raw_output = tix.Balloon(self.frame)
-        self.tip_display_raw_output.bind_widget(self.button_display_raw_output,balloonmsg="Will display the raw output from the plot check command. Usefull for debugging.")
-
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=9, sticky=W)
+        self.button_check_plots.grid(column=0, row=10, sticky=W, columnspan=2)
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
-    def check_coin_selection(self):
-        if self.coin_to_use.get() == 'SELECT A COIN':
-            self._log.warning('Please select a coin !')
+    def refresh_input_address(self,
+                              *args):
+        selected_plot_type = self.combobox_plot_type_to_use.get()
+        import_path = path.join(configuration[selected_plot_type]['root'], 'config', 'config.yaml')
+        self.input_frame.label_import_paths['text'] = import_path
+
+    def check_plot_type_selection(self):
+        if self.plot_type_to_use.get() == 'PLOT TYPE':
+            self._log.warning('Please select a plot type !')
             return False
         return True
 
     def master_display_stored_results(self):
-        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
+        if self.check_plot_type_selection():
             def action():
                 self.disable_all_buttons()
                 self.backend_label_busy(text='Busy with displaying stored results !')
-                self.print_stored_results(coin=self.coin_to_use.get())
+                self.parse_input_and_get_paths(self.input_frame.return_input())
+                self.print_stored_results(plot_type=self.plot_type_to_use.get())
                 self.enable_all_buttons()
                 self.backend_label_free()
-            Thread(target=action).start()
-
-    def master_display_raw_output(self):
-        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
-            def plot_name(): # MUST be in the same thread, otherwise the new window trick must be done
-                newWin = tix.Tk()
-                newWin.withdraw()
-                to_return = simpledialog.askstring(title="Input Required",
-                                                   prompt="Please input the name of the plot for which you want to display the raw output:",
-                                                   parent=newWin)
-                newWin.destroy()
-                return to_return
-
-            def action():
-                self.disable_all_buttons()
-                self.backend_label_busy(text='Busy with displaying raw output !')
-                self.print_raw_output(coin=self.coin_to_use.get(),
-                                      filter_string=plot_name())
-                self.enable_all_buttons()
-                self.backend_label_free()
-
             Thread(target=action).start()
 
     def master_check_plots(self):
-        if self.check_coin_selection() and self.precheck_duplicates(self.coin_to_use.get()):
+        if self.check_plot_type_selection():
             def action():
                 self.backend_label_busy(text='Busy with checking plots !')
                 self._log.info('Checking the plots.')
                 self.disable_all_buttons()
-                self.check_plots(coin=self.coin_to_use.get())
+                self.parse_input_and_get_paths(self.input_frame.return_input())
+                self.check_plots(plot_type=self.plot_type_to_use.get(),
+                                 nr_challenges=int(self.entry_challenges_to_check.get()),
+                                 progress_callback=self.progress_frame.update_progress_callback)
                 self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
                 self.enable_all_buttons()
                 self.backend_label_free()
             Thread(target=action).start()
+
+class FormInput():
+
+    def __init__(self, frame):
+        self.frame = frame
+
+        self._log = getLogger()
+
+        self.button_import_paths = ttk.Button(self.frame, text='Import paths', command=self.import_paths)
+        self.button_import_paths.grid(column=0, row=0, sticky=W)
+
+        self.label_import_paths = Label(self.frame, text='Select an plot type to see the import path ...')
+        self.label_import_paths.grid(column=0, row=1, rowspan=2)
+
+        self.scrolled_text_input = ScrolledText(self.frame, width=58, height=28)
+        self.scrolled_text_input.grid(row=3, column=0, sticky=(N, S, W, E))
+        self.scrolled_text_input.configure(font='TkFixedFont')
+        self.tip_text_input = tix.Balloon(self.frame)
+        self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert plot filepaths or folder paths containg plots (1 entry per line).")
+
+    def import_paths(self):
+        if self.label_import_paths.cget("text") != 'Select an plot type to see the import path ...':
+            try:
+                self._log.info(f'Importing paths from { self.label_import_paths.cget("text") } ...')
+                self.button_import_paths.configure(state='disabled')
+                with open(self.label_import_paths.cget("text"), 'r') as input_yaml_config:
+                    yaml_config = safe_load(input_yaml_config)
+                plots_paths = yaml_config['harvester']['plot_directories']
+                self.scrolled_text_input.delete('1.0', tk.END)
+                self.scrolled_text_input.insert(tk.INSERT, '\n'.join(plots_paths))
+                self._log.info('Paths imported successfully !')
+            except:
+                self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+
+            self.button_import_paths.configure(state='normal')
+
+    def return_input(self):
+        return self.scrolled_text_input.get("1.0", END).strip().split('\n')
+
+class ProgressBar():
+
+    def __init__(self, frame):
+        self.frame = frame
+
+        self._log = getLogger()
+
+        self.label_subprogress = Label(self.frame, text='Current task progress')
+        self.label_subprogress.grid(column=0, row=0)
+        self.subprogress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
+        self.subprogress.grid(column=0, row=1)
+
+        self.label_progress = Label(self.frame, text='Overall progress')
+        self.label_progress.grid(column=0, row=2)
+        self.progress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
+        self.progress.grid(column=0, row=3)
+
+    def update_progress_callback(self,
+                                **kwargs):
+        if kwargs.get('subprogress'):
+            self.subprogress['maximum'] = kwargs.get('subprogress')['maximum']
+            self.subprogress['value'] = kwargs.get('subprogress')['value']
+
+        if kwargs.get('progress'):
+            self.progress['maximum'] = kwargs.get('progress')['maximum']
+            self.progress['value'] = kwargs.get('progress')['value']
 
 class App():
 
@@ -263,22 +322,33 @@ class App():
         self.root.iconbitmap('icon.ico' if path.isfile('icon.ico') else path.join(sys._MEIPASS, 'icon.ico'))
 
         sponsor_frame = ttk.Labelframe(text="Sponsor")
-        sponsor_frame.grid(row=0, column=1, sticky="nsw")
+        sponsor_frame.grid(row=0, column=1, sticky="w")
         self.sponsor_frame = sponsor_reminder(sponsor_frame)
+
+        progress_frame = ttk.Labelframe(text="Progress")
+        progress_frame.grid(row=1, column=0, columnspan = 3, sticky='nsew')
+        self.progress_frame = ProgressBar(progress_frame)
+
+        input_frame = ttk.Labelframe(text="Input")
+        input_frame.grid(row=2, column=1, sticky="nsew")
+        self.input_frame = FormInput(input_frame)
 
         controls_frame = ttk.Labelframe(text="Controls")
         controls_frame.grid(row=0, column=0, sticky="nsw")
-        self.controls_frame = FormControls(controls_frame)
+        self.controls_frame = FormControls(controls_frame,
+                                           self.input_frame,
+                                           self.progress_frame)
 
         console_frame = ttk.Labelframe(text="Console")
-        console_frame.grid(row=1, column=0, sticky="nsew", columnspan=2)
+        console_frame.grid(row=2, column=0, sticky="nsew")
         self.console_frame = ConsoleUi(console_frame)
 
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
         self.root.bind('<Control-q>', self.quit)
         signal(SIGINT, self.quit)
 
-    def quit(self):
+    def quit(self,
+             *args):
         # self.root.destroy()
         sys.exit()
 
