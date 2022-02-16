@@ -167,7 +167,7 @@ class LEAF_back_end():
                     if plot_name not in self.catalog[plot_type].keys():
                         self.catalog[plot_type][plot_name] = []
 
-                    if (len(self.catalog[plot_type][plot_name]) > 0 and self.catalog[plot_type][plot_name][-1]['nr_challenges'] != nr_challenges)\
+                    if (len(self.catalog[plot_type][plot_name]) > 0 and self.catalog[plot_type][plot_name][-1]['challenges_tried'] != nr_challenges)\
                             or len(self.catalog[plot_type][plot_name]) == 0:
 
                         self.catalog[plot_type][plot_name].append({'path': entry})
@@ -186,7 +186,7 @@ class LEAF_back_end():
                             (pool_public_key_or_puzzle_hash,
                              farmer_public_key,
                              local_master_sk) = parse_plot_info(prover.get_memo())
-                            self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash.hex() }')
+                            self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash }')
                             self._log.info(f'Farmer public key: { farmer_public_key }')
                             self._log.info(f'Local master sk: { local_master_sk }')
 
