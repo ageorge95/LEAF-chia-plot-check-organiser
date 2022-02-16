@@ -277,7 +277,7 @@ class App():
         self.root.iconbitmap('icon.ico' if path.isfile('icon.ico') else path.join(sys._MEIPASS, 'icon.ico'))
 
         sponsor_frame = ttk.Labelframe(text="Sponsor")
-        sponsor_frame.grid(row=0, column=1, sticky="e")
+        sponsor_frame.grid(row=0, column=1, sticky="w")
         self.sponsor_frame = sponsor_reminder(sponsor_frame)
 
         controls_frame = ttk.Labelframe(text="Controls")
@@ -296,7 +296,8 @@ class App():
         self.root.bind('<Control-q>', self.quit)
         signal(SIGINT, self.quit)
 
-    def quit(self):
+    def quit(self,
+             *args):
         # self.root.destroy()
         sys.exit()
 
