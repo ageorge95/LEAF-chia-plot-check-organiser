@@ -285,7 +285,7 @@ class FormInput():
             self.button_import_paths.configure(state='normal')
 
     def return_input(self):
-        return self.scrolled_text_input.get("1.0", END).split('\n')
+        return self.scrolled_text_input.get("1.0", END).strip().split('\n')
 
 class ProgressBar():
 
