@@ -19,7 +19,6 @@ from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end
 
 class buttons_label_state_change():
-    combobox_plot_type_to_use: ttk.Combobox
     button_display_stored_results: ttk.Button
     button_check_plots: ttk.Button
     label_backend_status: ttk.Label
@@ -31,8 +30,7 @@ class buttons_label_state_change():
 
     def get_buttons_reference(self):
 
-        self.buttons = [self.combobox_plot_type_to_use,
-                        self.button_display_stored_results,
+        self.buttons = [self.button_display_stored_results,
                         self.button_check_plots
                         ]
     def disable_all_buttons(self):
@@ -161,6 +159,8 @@ class FormControls(buttons_label_state_change,
                  progress_frame):
         super(FormControls, self).__init__()
 
+        self._log = getLogger()
+
         self.frame = frame
         self.input_frame = input_frame
         self.progress_frame = progress_frame
@@ -171,6 +171,12 @@ class FormControls(buttons_label_state_change,
         self.label_challenges_to_check.grid(column=0, row=1)
         self.entry_challenges_to_check.grid(column=0, row=2)
 
+        self.label_delay_between_check = Label(self.frame, text='Delay[s] between challenge check')
+        self.entry_delay_between_check = Entry(self.frame)
+        self.entry_delay_between_check.insert(END, '0')
+        self.label_delay_between_check.grid(column=0, row=3)
+        self.entry_delay_between_check.grid(column=0, row=4)
+
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
         self.label_backend_status_notify.grid(column=4, row=1)
         self.label_backend_status = Label(self.frame, text="Doing nothing ...", fg='#33cc33')
@@ -180,28 +186,47 @@ class FormControls(buttons_label_state_change,
         self.separator_filtering_v.grid(column=3, row=0, rowspan=15, sticky=(N, S))
 
         self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering_h.grid(column=0, row=4, columnspan=3, sticky=(W, E), pady=(10,10))
+        self.separator_filtering_h.grid(column=0, row=5, columnspan=3, sticky=(W, E), pady=(10,10))
 
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
-        self.label_hover_hints.grid(column=0, row=5, columnspan=2)
+        self.label_hover_hints.grid(column=0, row=6, columnspan=2)
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=6, sticky=W, columnspan=2)
+        self.button_display_stored_results.grid(column=0, row=7, sticky=W, columnspan=2)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=10, sticky=W, columnspan=2)
+        self.button_check_plots.grid(column=0, row=11, sticky=W, columnspan=2)
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
+
+    def input_sanity_check(self):
+        success = True
+        message = ''
+
+        try:
+            int(self.entry_challenges_to_check.get())
+        except:
+            success = False
+            message += f"{ self.entry_challenges_to_check.get() } is not really a number is it ? Correct that and try again !"
+
+        try:
+            float(self.entry_delay_between_check.get())
+        except:
+            success = False
+            message += f"{ self.entry_delay_between_check.get() } is not really a number is it ? Correct that and try again !"
+
+        return {'success': success,
+                'message': message}
 
     def master_display_stored_results(self):
         def action():
             self.disable_all_buttons()
             self.backend_label_busy(text='Busy with displaying stored results !')
             self.parse_input_and_get_paths(self.input_frame.return_input())
-            self.print_stored_results(plot_type=self.plot_type_to_use.get())
+            self.print_stored_results()
             self.enable_all_buttons()
             self.backend_label_free()
         Thread(target=action).start()
@@ -212,13 +237,18 @@ class FormControls(buttons_label_state_change,
             self._log.info('Checking the plots.')
             self.disable_all_buttons()
             self.parse_input_and_get_paths(self.input_frame.return_input())
-            self.check_plots(plot_type=self.plot_type_to_use.get(),
-                             nr_challenges=int(self.entry_challenges_to_check.get()),
+            self.check_plots(nr_challenges=int(self.entry_challenges_to_check.get()),
+                             delay_between_checks=float(self.entry_delay_between_check.get()),
                              progress_callback=self.progress_frame.update_progress_callback)
             self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
             self.enable_all_buttons()
             self.backend_label_free()
-        Thread(target=action).start()
+
+        sanity_check = self.input_sanity_check()
+        if sanity_check['success']:
+            Thread(target=action).start()
+        else:
+            self._log.error(f"'Sanity check Failed:\n{ sanity_check['message'] }'")
 
 class FormInput():
 
@@ -242,24 +272,23 @@ class FormInput():
         self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert plot filepaths or folder paths containg plots (1 entry per line).")
 
     def import_paths(self):
-        if self.label_import_paths.cget("text") != 'Select an plot type to see the import path ...':
-            all_plot_paths = []
-            for import_path in self.import_paths:
-                try:
-                    self._log.info(f'Importing paths from { import_path } ...')
-                    self.button_import_paths.configure(state='disabled')
-                    with open(import_path, 'r') as input_yaml_config:
-                        yaml_config = safe_load(input_yaml_config)
-                    plots_paths = yaml_config['harvester']['plot_directories']
-                    all_plot_paths += plots_paths
-                    self._log.info('Paths imported successfully !')
-                except:
-                    self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+        all_plot_paths = []
+        for import_path in self.import_paths:
+            try:
+                self._log.info(f'Importing paths from { import_path } ...')
+                self.button_import_paths.configure(state='disabled')
+                with open(import_path, 'r') as input_yaml_config:
+                    yaml_config = safe_load(input_yaml_config)
+                plots_paths = yaml_config['harvester']['plot_directories']
+                all_plot_paths += plots_paths
+                self._log.info('Paths imported successfully !')
+            except:
+                self._log.error(f'Failed to import the paths from { import_path }\n{ format_exc(chain=False) }')
 
-            self.scrolled_text_input.delete('1.0', tk.END)
-            self.scrolled_text_input.insert(tk.INSERT, '\n'.join(all_plot_paths))
+        self.scrolled_text_input.delete('1.0', tk.END)
+        self.scrolled_text_input.insert(tk.INSERT, '\n'.join(all_plot_paths))
 
-            self.button_import_paths.configure(state='normal')
+        self.button_import_paths.configure(state='normal')
 
     def return_input(self):
         return self.scrolled_text_input.get("1.0", END).strip().split('\n')
