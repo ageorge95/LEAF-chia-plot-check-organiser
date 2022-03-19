@@ -1,9 +1,7 @@
-from sys import path
-from os import path as os_path, listdir
-path.append(os_path.join('chia_blockchain'))
-path.append(os_path.join('chives_blockchain'))
-from pathlib import Path
-from logging import getLogger, StreamHandler, Formatter
+from os import path,\
+    listdir,\
+    mkdir
+from logging import getLogger
 from json import load,\
     dump
 from tabulate import tabulate
@@ -11,11 +9,7 @@ from traceback import format_exc
 import chiapos
 from blspy import G1Element, PrivateKey, AugSchemeMPL
 import blspy
-
-configuration = {'chia__XCH': {'port': 8444,
-                               'root': Path(os_path.join(os_path.expanduser("~"),'.chia\mainnet'))},
-                 'chives__XCC': {'port': 9699,
-                                 'root': Path(os_path.join(os_path.expanduser("~"),'.chives\mainnet'))}}
+from time import sleep
 
 def parse_plot_info(memo: bytes):
     # Parses the plot info bytes into keys
@@ -62,8 +56,48 @@ def generate_plot_public_key(local_pk: G1Element, farmer_pk: G1Element, include_
         return local_pk + farmer_pk + taproot_sk.get_g1()
     else:
         return local_pk + farmer_pk
+    
+class output_manager():
+    def __init__(self):
+        if not path.isdir('output'):
+            mkdir('output')
 
-class LEAF_back_end():
+    def load_data(self,
+                  plot_name):
+        if not path.isfile(path.join('output', plot_name+'.json')):
+            return None
+        else:
+            try:
+                with open(path.join('output', plot_name+'.json'), 'r') as input_handle:
+                    return load(input_handle)
+            except:
+                return None
+
+    def save_data(self,
+                  plot_name,
+                  content):
+        with open(path.join('output', plot_name+'.json'), 'w') as output_handle:
+            dump(content, output_handle, indent=2)
+
+    def get_entries(self):
+        return listdir('output')
+
+    def parse_and_return_relevant_data(self,
+                                       list_of_plots):
+        to_return = []
+        for plot_name in list_of_plots:
+            stored_data = self.load_data(plot_name)
+            if stored_data:
+                to_return.append({'name': plot_name,
+                                  'challenges_tried': max(int(_) for _ in stored_data['challenges'].keys())+1,
+                                  'proofs_found': sum([_['proofs'] for _ in stored_data['challenges'].values()])})
+            else:
+                to_return.append({'name': plot_name,
+                                  'challenges_tried': None,
+                                  'proofs_found': None})
+        return to_return
+
+class LEAF_back_end(output_manager):
 
     _log: getLogger
 
@@ -75,28 +109,16 @@ class LEAF_back_end():
 
         self.wd_root = wd_root
         self.wf_name = wf_name
-        self.reload_catalog()
-
-    def reload_catalog(self):
-        try:
-            if os_path.isfile(os_path.join(self.wd_root, self.wf_name)):
-                with open(os_path.join(self.wd_root, self.wf_name), 'r') as json_in_handle:
-                    self.catalog = load(json_in_handle)
-            else:
-                self.catalog = {}
-        except:
-            self._log.error('Oh snap ! An error has occurred while reloading the catalog:\n{}'.format(format_exc(chain=False)))
-
 
     def parse_input_and_get_paths(self,
                                   input_data: list):
         self._log.info('Looking for plots in the input data ...')
         self.all_plots_paths = []
         for entry in input_data:
-            if os_path.isfile(entry):
+            if path.isfile(entry):
                 self.all_plots_paths.append(entry)
-            elif os_path.isdir(entry):
-                self.all_plots_paths += list(filter(lambda x:x.endswith('.plot'), [os_path.join(entry, filename) for filename in listdir(entry)]))
+            elif path.isdir(entry):
+                self.all_plots_paths += list(filter(lambda x:x.endswith('.plot'), [path.join(entry, filename) for filename in listdir(entry)]))
             else:
                 self._log.warning(f"{ entry } is neither a valid file nor a valid path !")
         self._log.info(f'Discovered { len(self.all_plots_paths) } plots in the provided filepaths & folder paths.')
@@ -109,7 +131,7 @@ class LEAF_back_end():
 
     def _precheck_duplicates(self):
 
-        precheck_duplicates_helper = [os_path.basename(entry) for entry in self.all_plots_paths]
+        precheck_duplicates_helper = [path.basename(entry) for entry in self.all_plots_paths]
         duplicates_found = False
         for index, entry in enumerate(precheck_duplicates_helper):
             if precheck_duplicates_helper.count(entry) > 1:
@@ -118,119 +140,145 @@ class LEAF_back_end():
 
         return duplicates_found
 
-    def print_stored_results(self,
-                             plot_type):
+    def print_stored_results(self):
         try:
-            self.reload_catalog()
-            if plot_type in self.catalog.keys():
-                # sort the results
-                sorted_catalog = dict(sorted(self.catalog[plot_type].items(), key=lambda x: (x[1][-1]['proofs_found'] / x[1][-1]['challenges_tried'])))
 
-                # reporting phase
-                headers = ['Plot filepath', 'Challenges', 'Proofs Ratio', 'Valid_Test']
-                table_rows = []
+            list_with_all_plots = self.parse_and_return_relevant_data([path.basename(_) for _ in self.all_plots_paths])
 
-                for result in sorted_catalog.items():
-                    if os_path.basename(result[1][-1]['path']) in [os_path.basename(entry) for entry in self.all_plots_paths]:
-                        ratio = result[1][-1]['proofs_found'] / result[1][-1]['challenges_tried']
-                        row = [result[1][-1]['path'],
-                               result[1][-1]['challenges_tried'],
-                               ratio,
-                               'GOOD' if ratio != 0 else 'BAD']
+            # filter plots with no past checks
+            not_checked_plots = list(filter(lambda x:not x['challenges_tried'], list_with_all_plots))
+            checked_plots = list(filter(lambda x:x['challenges_tried'], list_with_all_plots))
 
-                        table_rows.append(row)
+            # sort the results
+            sorted_checked_plots = sorted(checked_plots,
+                                 key=lambda x: (x['proofs_found'] / x['challenges_tried']))
 
-                self._log.info('Found {} plots out of which {} plots were checked in the past by this tool'.format(len(self.all_plots_paths),
-                                                                                                                   len(table_rows)))
-                self._log.info('\n' + tabulate(table_rows, headers=headers, tablefmt="grid"))
-            else:
-                self._log.warning('{} has no registered plot checks !'.format(plot_type))
+            # reporting phase
+            headers = ['Plot name', 'Challenges', 'Proofs Ratio']
+            table_rows = []
+
+            for result in sorted_checked_plots+not_checked_plots:
+                ratio = (result['proofs_found'] / result['challenges_tried'])\
+                    if result['challenges_tried'] else 0
+                row = [result['name'],
+                       result['challenges_tried'],
+                       ratio]
+
+                table_rows.append(row)
+
+            self._log.info('\n' + tabulate(table_rows, headers=headers, tablefmt="grid"))
         except:
             self._log.error('Oh snap ! An error has occurred while printing the stored results:\n{}'.format(format_exc(chain=False)))
 
     def check_plots(self,
-                    plot_type: str,
                     nr_challenges: int,
-                    progress_callback):
+                    delay_between_checks: float,
+                    progress_callback,
+                    stop_flag_check):
         try:
-            self.reload_catalog()
 
             # reset the progress bar
             progress_callback(subprogress={'maximum': 0,
-                                            'value': 0},
+                                           'value': 0,
+                                           'text': f'0 / { nr_challenges }'},
                               progress={'maximum': 0,
-                                            'value': 0}
-                                                  )
+                                        'value': 0,
+                                        'text': f'0 / { len(self.all_plots_paths) }'})
 
-            for plot_index, entry in enumerate(self.all_plots_paths, 1):
-                if not os_path.isfile(entry):
-                    self._log.warning('{} is not a valid path. It will be skipped.'.format(entry))
+            for plot_index, plot_path in enumerate(self.all_plots_paths, 1):
+                if stop_flag_check():
+                    self._log.warning('STOP requested by the user. Do not worry,'
+                                      ' on the next execution the plot check will resume where it left off.')
+                    return
+
+                if not path.isfile(plot_path):
+                    self._log.warning('{} is not a valid path. It will be skipped.'.format(plot_path))
                 else:
-                    plot_name = os_path.basename(entry)
+                    plot_name = path.basename(plot_path)
                     self._log.info(f'Please wait, now checking plot {plot_index}/{len(self.all_plots_paths)}: {plot_name}')
 
-                    if plot_type not in self.catalog.keys():
-                        self.catalog[plot_type] = {}
+                    existing_data_for_plot = self.load_data(plot_name)
+                    working_set = existing_data_for_plot if existing_data_for_plot else {'challenges': {},
+                                                                                         'path_history': []}
 
-                    if plot_name not in self.catalog[plot_type].keys():
-                        self.catalog[plot_type][plot_name] = []
+                    working_set['path_history'].append(plot_path)
 
-                    if (len(self.catalog[plot_type][plot_name]) > 0 and self.catalog[plot_type][plot_name][-1]['challenges_tried'] != nr_challenges)\
-                            or len(self.catalog[plot_type][plot_name]) == 0:
+                    try:
+                        prover = chiapos.DiskProver(plot_path)
+                        verifier = chiapos.Verifier()
 
-                        self.catalog[plot_type][plot_name].append({'path': entry})
+                        size = prover.get_size()
+                        self._log.info(f'This plot has a size of {size}')
+                        working_set['plot_size'] = size
+                        # sanity check - check if the parsed plot size is the same as in the plot filename
+                        assert size == int(plot_path.split('k')[1].split('-')[0])
 
-                        try:
-                            prover = chiapos.DiskProver(entry)
-                            verifier = chiapos.Verifier()
+                        id = prover.get_id()
+                        working_set['plot_id'] = id.hex()
+                        self._log.info(f'Plot ID: { id.hex() }')
 
-                            size = prover.get_size()
-                            self._log.info(f'This plot has a size of {size}')
-                            assert size == int(entry.split('k')[1].split('-')[0])
+                        (pool_public_key_or_puzzle_hash,
+                         farmer_public_key,
+                         local_master_sk) = parse_plot_info(prover.get_memo())
+                        working_set['farmer_public_key'] = str(farmer_public_key)
+                        working_set['local_master_sk'] = str(local_master_sk)
+                        working_set['pool_public_key_or_puzzle_hash'] = str(pool_public_key_or_puzzle_hash)
 
-                            id = prover.get_id()
-                            self._log.info(f'Plot ID: { id.hex() }')
+                        self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash }')
+                        self._log.info(f'Farmer public key: { farmer_public_key }')
+                        self._log.info(f'Local master sk: { local_master_sk }')
 
-                            (pool_public_key_or_puzzle_hash,
-                             farmer_public_key,
-                             local_master_sk) = parse_plot_info(prover.get_memo())
-                            self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash }')
-                            self._log.info(f'Farmer public key: { farmer_public_key }')
-                            self._log.info(f'Local master sk: { local_master_sk }')
+                        pool_public_key: G1Element = None
+                        pool_contract_puzzle_hash: bytes = None
+                        if isinstance(pool_public_key_or_puzzle_hash, G1Element):
+                            pool_public_key = pool_public_key_or_puzzle_hash
+                        else:
+                            assert isinstance(pool_public_key_or_puzzle_hash, bytes)
+                            pool_contract_puzzle_hash = pool_public_key_or_puzzle_hash
 
-                            pool_public_key: G1Element = None
-                            pool_contract_puzzle_hash: bytes = None
-                            if isinstance(pool_public_key_or_puzzle_hash, G1Element):
-                                pool_public_key = pool_public_key_or_puzzle_hash
-                            else:
-                                assert isinstance(pool_public_key_or_puzzle_hash, bytes)
-                                pool_contract_puzzle_hash = pool_public_key_or_puzzle_hash
+                        if pool_public_key:
+                            self._log.info(f'OG plot detected with pool public key: { pool_public_key }')
+                            working_set['plot_type'] = 'OG'
+                        if pool_contract_puzzle_hash:
+                            self._log.info(f'NFT plot detected with pool contract ph: { pool_contract_puzzle_hash.hex() }')
+                            working_set['plot_type'] = 'NFT'
 
-                            if pool_public_key:
-                                self._log.info(f'OG plot detected with pool public key: { pool_public_key }')
-                            if pool_contract_puzzle_hash:
-                                self._log.info(f'NFT plot detected with pool contract ph: { pool_contract_puzzle_hash.hex() }')
-
+                        for port in [['chia-XCH', 8444],
+                                     ['chives-XCC', 9699]]:
                             local_sk = master_sk_to_local_sk(master=local_master_sk,
-                                                             port=configuration[plot_type]['port'])
+                                                             port=port[1])
                             self._log.info(f'Local sk: { local_sk }')
 
                             plot_public_key: G1Element = generate_plot_public_key(
                                                     local_sk.get_g1(), farmer_public_key, pool_contract_puzzle_hash is not None
                                                 )
-                            self._log.info(f'Plot public key: { plot_public_key }\n\n')
+                            working_set[f'plot_public_key_{ port[1] }'] = str(plot_public_key)
+                            self._log.info(f'Plot public key for port { port[0] } -> { port[1] }: { plot_public_key }\n\n')
 
-                            total_proofs = 0
+                        self.save_data(plot_name,
+                                       working_set)
+                        total_proofs = 0
 
-                            for challenge_index in range(0, nr_challenges):
+                        for challenge_index in range(0, nr_challenges):
+                            if stop_flag_check():
+                                self._log.warning('STOP requested by the user. Do not worry,'
+                                                  ' on the next execution the plot check will resume where it left off.')
+                                return
+
+                            self._log.info(f'Checking challenge {challenge_index + 1}/{nr_challenges} ...')
+
+                            if str(challenge_index) not in working_set['challenges'].keys():
                                 challenge = std_hash(challenge_index.to_bytes(32, "big"))
+                                working_set['challenges'][challenge_index] = {'challenge': challenge.hex()}
                                 self._log.info(f'Prepared challenge {challenge_index + 1}/{nr_challenges}: { challenge.hex() }')
 
                                 qualities_for_challenge = prover.get_qualities_for_challenge(challenge)
 
-                                self._log.info(f'Found {len( qualities_for_challenge) } proofs for the current challenge.')
+                                working_set['challenges'][challenge_index]['proofs'] = len(qualities_for_challenge)
+                                self._log.info(f'Found { len(qualities_for_challenge) } proofs for the current challenge.')
 
-                                for quality_index, quality_str in enumerate(prover.get_qualities_for_challenge(challenge)):
+                                # verify the proof
+                                for quality_index, quality_str in enumerate(qualities_for_challenge):
 
                                     proof = prover.get_full_proof(challenge, quality_index)
                                     total_proofs += 1
@@ -238,27 +286,27 @@ class LEAF_back_end():
                                     assert quality_str == ver_quality_str
 
                                 progress_callback(subprogress={'maximum': nr_challenges,
-                                                               'value': challenge_index+1}
+                                                               'value': challenge_index+1,
+                                                               'text': f"{ challenge_index+1 } / { nr_challenges }"}
                                                   )
+                                self.save_data(plot_name,
+                                               working_set)
 
-                            self._log.info(f'DONE. Found { total_proofs } proofs/ { nr_challenges } checks, with a ratio of { total_proofs/nr_challenges }.')
-                            self.catalog[plot_type][plot_name][-1].update({'proofs_found': total_proofs,
-                                                                           'challenges_tried': nr_challenges})
+                                if delay_between_checks:
+                                    self._log.info(f"Going to sleep for { delay_between_checks } seconds ...")
+                                    sleep(delay_between_checks)
+                            else:
+                                self._log.info('This challenge was already checked for this plot.')
+                                total_proofs += working_set['challenges'][str(challenge_index)]['proofs']
 
-                        except:
-                            self._log.error(f'Found an error while checking {entry} \n{format_exc(chain=False)}')
-                            self.catalog[plot_type][plot_name][-1].update({'proofs_found': 0,
-                                                                           'challenges_tried': nr_challenges})
+                        self._log.info(f'DONE. Found { total_proofs } proofs/ { nr_challenges } checks, with a ratio of { total_proofs/nr_challenges }.')
 
-                        out_path = os_path.join(self.wd_root, self.wf_name)
-                        with open(out_path, 'w') as json_out_handle:
-                            dump(self.catalog, json_out_handle, indent=2)
-                        self._log.info(f'Data saved in { out_path }')
-                    else:
-                        self._log.warning(f'Plot already checked in the past, with { nr_challenges } challenges. Skipping ...')
+                    except:
+                        self._log.error(f'Found an error while checking {plot_path} \n{format_exc(chain=False)}')
 
                 progress_callback(progress={'maximum': len(self.all_plots_paths),
-                                            'value': plot_index}
-                                                  )
+                                            'value': plot_index,
+                                            'text': f"{ plot_index } / { len(self.all_plots_paths) }"})
+
         except:
             self._log.error('Oh snap ! An error has occurred while checking the plots:\n{}'.format(format_exc(chain=False)))

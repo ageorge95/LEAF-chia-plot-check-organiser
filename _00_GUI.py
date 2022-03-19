@@ -16,11 +16,9 @@ from yaml import safe_load
 from traceback import format_exc
 
 from _00_base import configure_logger_and_queue
-from _00_back_end import LEAF_back_end,\
-    configuration
+from _00_back_end import LEAF_back_end
 
 class buttons_label_state_change():
-    combobox_plot_type_to_use: ttk.Combobox
     button_display_stored_results: ttk.Button
     button_check_plots: ttk.Button
     label_backend_status: ttk.Label
@@ -32,8 +30,7 @@ class buttons_label_state_change():
 
     def get_buttons_reference(self):
 
-        self.buttons = [self.combobox_plot_type_to_use,
-                        self.button_display_stored_results,
+        self.buttons = [self.button_display_stored_results,
                         self.button_check_plots
                         ]
     def disable_all_buttons(self):
@@ -162,29 +159,25 @@ class FormControls(buttons_label_state_change,
                  progress_frame):
         super(FormControls, self).__init__()
 
+        self.stop_flag = False
+
+        self._log = getLogger()
+
         self.frame = frame
         self.input_frame = input_frame
         self.progress_frame = progress_frame
 
-        self.label_plot_type_to_use = Label(self.frame, text='Type of plots:')
-        self.plot_type_to_use = tk.StringVar()
-        self.combobox_plot_type_to_use = ttk.Combobox(
-            self.frame,
-            textvariable=self.plot_type_to_use,
-            width=15,
-            state='readonly',
-            values=list(configuration.keys())
-        )
-        self.combobox_plot_type_to_use.bind("<<ComboboxSelected>>", self.refresh_input_address)
-        self.combobox_plot_type_to_use.set('PLOT TYPE')
-        self.label_plot_type_to_use.grid(column=0, row=1)
-        self.combobox_plot_type_to_use.grid(column=0, row=2)
-        
         self.label_challenges_to_check = Label(self.frame, text='Nr of Challenges to check')
         self.entry_challenges_to_check = Entry(self.frame)
         self.entry_challenges_to_check.insert(END, '100')
-        self.label_challenges_to_check.grid(column=1, row=1)
-        self.entry_challenges_to_check.grid(column=1, row=2)
+        self.label_challenges_to_check.grid(column=0, row=1)
+        self.entry_challenges_to_check.grid(column=0, row=2)
+
+        self.label_delay_between_check = Label(self.frame, text='Delay[s] between challenge check')
+        self.entry_delay_between_check = Entry(self.frame)
+        self.entry_delay_between_check.insert(END, '0')
+        self.label_delay_between_check.grid(column=0, row=3)
+        self.entry_delay_between_check.grid(column=0, row=4)
 
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
         self.label_backend_status_notify.grid(column=4, row=1)
@@ -195,59 +188,82 @@ class FormControls(buttons_label_state_change,
         self.separator_filtering_v.grid(column=3, row=0, rowspan=15, sticky=(N, S))
 
         self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering_h.grid(column=0, row=4, columnspan=3, sticky=(W, E), pady=(10,10))
+        self.separator_filtering_h.grid(column=0, row=5, columnspan=3, sticky=(W, E), pady=(10,10))
 
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
-        self.label_hover_hints.grid(column=0, row=5, columnspan=2)
+        self.label_hover_hints.grid(column=0, row=6, columnspan=2)
 
         self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=6, sticky=W, columnspan=2)
+        self.button_display_stored_results.grid(column=0, row=7, sticky=W, columnspan=2)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=10, sticky=W, columnspan=2)
+        self.button_check_plots.grid(column=0, row=11, sticky=W, columnspan=2)
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
-    def refresh_input_address(self,
-                              *args):
-        selected_plot_type = self.combobox_plot_type_to_use.get()
-        import_path = path.join(configuration[selected_plot_type]['root'], 'config', 'config.yaml')
-        self.input_frame.label_import_paths['text'] = import_path
+        self.button_stop_plots = ttk.Button(self.frame, text='STOP check', command=self.set_stop_flag)
+        self.button_stop_plots.grid(column=1, row=11, sticky=E, columnspan=2)
+        self.tip_stop_plots = tix.Balloon(self.frame)
+        self.tip_stop_plots.bind_widget(self.button_check_plots,balloonmsg="Will stop the current check. Progress is saved. On the next execution the check will resume.")
 
-    def check_plot_type_selection(self):
-        if self.plot_type_to_use.get() == 'PLOT TYPE':
-            self._log.warning('Please select a plot type !')
-            return False
-        return True
+    def input_sanity_check(self):
+        success = True
+        message = ''
+
+        try:
+            int(self.entry_challenges_to_check.get())
+        except:
+            success = False
+            message += f"{ self.entry_challenges_to_check.get() } is not really a number is it ? Correct that and try again !"
+
+        try:
+            float(self.entry_delay_between_check.get())
+        except:
+            success = False
+            message += f"{ self.entry_delay_between_check.get() } is not really a number is it ? Correct that and try again !"
+
+        return {'success': success,
+                'message': message}
 
     def master_display_stored_results(self):
-        if self.check_plot_type_selection():
-            def action():
-                self.disable_all_buttons()
-                self.backend_label_busy(text='Busy with displaying stored results !')
-                self.parse_input_and_get_paths(self.input_frame.return_input())
-                self.print_stored_results(plot_type=self.plot_type_to_use.get())
-                self.enable_all_buttons()
-                self.backend_label_free()
-            Thread(target=action).start()
+        def action():
+            self.disable_all_buttons()
+            self.backend_label_busy(text='Busy with displaying stored results !')
+            self.parse_input_and_get_paths(self.input_frame.return_input())
+            self.print_stored_results()
+            self.enable_all_buttons()
+            self.backend_label_free()
+        Thread(target=action).start()
 
     def master_check_plots(self):
-        if self.check_plot_type_selection():
-            def action():
-                self.backend_label_busy(text='Busy with checking plots !')
-                self._log.info('Checking the plots.')
-                self.disable_all_buttons()
-                self.parse_input_and_get_paths(self.input_frame.return_input())
-                self.check_plots(plot_type=self.plot_type_to_use.get(),
-                                 nr_challenges=int(self.entry_challenges_to_check.get()),
-                                 progress_callback=self.progress_frame.update_progress_callback)
-                self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
-                self.enable_all_buttons()
-                self.backend_label_free()
+        def action():
+            self.backend_label_busy(text='Busy with checking plots !')
+            self._log.info('Checking the plots.')
+            self.disable_all_buttons()
+            self.parse_input_and_get_paths(self.input_frame.return_input())
+            self.check_plots(nr_challenges=int(self.entry_challenges_to_check.get()),
+                             delay_between_checks=float(self.entry_delay_between_check.get()),
+                             progress_callback=self.progress_frame.update_progress_callback,
+                             stop_flag_check=self.stop_flag_check)
+            self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
+            self.enable_all_buttons()
+            self.stop_flag = False
+            self.backend_label_free()
+
+        sanity_check = self.input_sanity_check()
+        if sanity_check['success']:
             Thread(target=action).start()
+        else:
+            self._log.error(f"'Sanity check Failed:\n{ sanity_check['message'] }'")
+
+    def set_stop_flag(self):
+        self.stop_flag = True
+
+    def stop_flag_check(self):
+        return self.stop_flag
 
 class FormInput():
 
@@ -259,7 +275,9 @@ class FormInput():
         self.button_import_paths = ttk.Button(self.frame, text='Import paths', command=self.import_paths)
         self.button_import_paths.grid(column=0, row=0, sticky=W)
 
-        self.label_import_paths = Label(self.frame, text='Select an plot type to see the import path ...')
+        self.import_paths = [path.join(path.expanduser("~"),'.chia', 'mainnet', 'config', 'config.yaml'),
+                        path.join(path.expanduser("~"),'.chives', 'mainnet', 'config', 'config.yaml')]
+        self.label_import_paths = Label(self.frame, text=';\n'.join(self.import_paths))
         self.label_import_paths.grid(column=0, row=1, rowspan=2)
 
         self.scrolled_text_input = ScrolledText(self.frame, width=58, height=28)
@@ -269,20 +287,23 @@ class FormInput():
         self.tip_text_input.bind_widget(self.scrolled_text_input, balloonmsg="Insert plot filepaths or folder paths containg plots (1 entry per line).")
 
     def import_paths(self):
-        if self.label_import_paths.cget("text") != 'Select an plot type to see the import path ...':
+        all_plot_paths = []
+        for import_path in self.import_paths:
             try:
-                self._log.info(f'Importing paths from { self.label_import_paths.cget("text") } ...')
+                self._log.info(f'Importing paths from { import_path } ...')
                 self.button_import_paths.configure(state='disabled')
-                with open(self.label_import_paths.cget("text"), 'r') as input_yaml_config:
+                with open(import_path, 'r') as input_yaml_config:
                     yaml_config = safe_load(input_yaml_config)
                 plots_paths = yaml_config['harvester']['plot_directories']
-                self.scrolled_text_input.delete('1.0', tk.END)
-                self.scrolled_text_input.insert(tk.INSERT, '\n'.join(plots_paths))
+                all_plot_paths += plots_paths
                 self._log.info('Paths imported successfully !')
             except:
-                self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+                self._log.error(f'Failed to import the paths from { import_path }\n{ format_exc(chain=False) }')
 
-            self.button_import_paths.configure(state='normal')
+        self.scrolled_text_input.delete('1.0', tk.END)
+        self.scrolled_text_input.insert(tk.INSERT, '\n'.join(all_plot_paths))
+
+        self.button_import_paths.configure(state='normal')
 
     def return_input(self):
         return self.scrolled_text_input.get("1.0", END).strip().split('\n')
@@ -294,12 +315,12 @@ class ProgressBar():
 
         self._log = getLogger()
 
-        self.label_subprogress = Label(self.frame, text='Current task progress')
+        self.label_subprogress = Label(self.frame, text='Current task progress: 0 / 0')
         self.label_subprogress.grid(column=0, row=0)
         self.subprogress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
         self.subprogress.grid(column=0, row=1)
 
-        self.label_progress = Label(self.frame, text='Overall progress')
+        self.label_progress = Label(self.frame, text='Overall progress: 0 / 0')
         self.label_progress.grid(column=0, row=2)
         self.progress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
         self.progress.grid(column=0, row=3)
@@ -309,10 +330,12 @@ class ProgressBar():
         if kwargs.get('subprogress'):
             self.subprogress['maximum'] = kwargs.get('subprogress')['maximum']
             self.subprogress['value'] = kwargs.get('subprogress')['value']
+            self.label_subprogress.configure(text=f"Current task progress: { kwargs.get('subprogress')['text'] }")
 
         if kwargs.get('progress'):
             self.progress['maximum'] = kwargs.get('progress')['maximum']
             self.progress['value'] = kwargs.get('progress')['value']
+            self.label_progress.configure(text=f"Overall progress: { kwargs.get('progress')['text'] }" )
 
 class App():
 
