@@ -21,6 +21,10 @@ The plots check is a very I/O intensive operation !
 
 You can now put a delay between each challenge check; usefull when the HDD where the plots are located is also beeing farmed.
 
+### IMPORTANT
+
+v1.4+ is NOT backwards compatible with the older versions !
+
 # Feedback/ Contribution
 - Please post any issues you encountered or any feature requests in the issues tab.
 - Also, feel free to contribute to the tool's development with a PR.
