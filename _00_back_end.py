@@ -173,9 +173,14 @@ class LEAF_back_end(output_manager):
     def check_plots(self,
                     nr_challenges: int,
                     delay_between_checks: float,
-                    progress_callback):
+                    progress_callback,
+                    stop_flag_check):
         try:
 
+            if stop_flag_check():
+                self._log.warning('STOP requested by the user. Do not worry,'
+                                  ' on the next execution the plot check will resume where it left off.')
+                return
             # reset the progress bar
             progress_callback(subprogress={'maximum': 0,
                                             'value': 0},
@@ -274,6 +279,10 @@ class LEAF_back_end(output_manager):
                                     ver_quality_str = verifier.validate_proof(id, size, challenge, proof)
                                     assert quality_str == ver_quality_str
 
+                                if stop_flag_check():
+                                    self._log.warning('STOP requested by the user. Do not worry,'
+                                                      ' on the next execution the plot check will resume where it left off.')
+                                    return
                                 progress_callback(subprogress={'maximum': nr_challenges,
                                                                'value': challenge_index+1}
                                                   )
@@ -292,6 +301,10 @@ class LEAF_back_end(output_manager):
                     except:
                         self._log.error(f'Found an error while checking {plot_path} \n{format_exc(chain=False)}')
 
+                if stop_flag_check():
+                    self._log.warning('STOP requested by the user. Do not worry,'
+                                      ' on the next execution the plot check will resume where it left off.')
+                    return
                 progress_callback(progress={'maximum': len(self.all_plots_paths),
                                             'value': plot_index}
                                                   )

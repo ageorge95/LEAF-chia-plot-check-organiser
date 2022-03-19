@@ -159,6 +159,8 @@ class FormControls(buttons_label_state_change,
                  progress_frame):
         super(FormControls, self).__init__()
 
+        self.stop_flag = False
+
         self._log = getLogger()
 
         self.frame = frame
@@ -202,6 +204,11 @@ class FormControls(buttons_label_state_change,
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
+        self.button_stop_plots = ttk.Button(self.frame, text='STOP check', command=self.set_stop_flag)
+        self.button_stop_plots.grid(column=1, row=11, sticky=E, columnspan=2)
+        self.tip_stop_plots = tix.Balloon(self.frame)
+        self.tip_stop_plots.bind_widget(self.button_check_plots,balloonmsg="Will stop the current check. Progress is saved. On the next execution the check will resume.")
+
     def input_sanity_check(self):
         success = True
         message = ''
@@ -239,9 +246,11 @@ class FormControls(buttons_label_state_change,
             self.parse_input_and_get_paths(self.input_frame.return_input())
             self.check_plots(nr_challenges=int(self.entry_challenges_to_check.get()),
                              delay_between_checks=float(self.entry_delay_between_check.get()),
-                             progress_callback=self.progress_frame.update_progress_callback)
+                             progress_callback=self.progress_frame.update_progress_callback,
+                             stop_flag_check=self.stop_flag_check)
             self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
             self.enable_all_buttons()
+            self.stop_flag = False
             self.backend_label_free()
 
         sanity_check = self.input_sanity_check()
@@ -249,6 +258,12 @@ class FormControls(buttons_label_state_change,
             Thread(target=action).start()
         else:
             self._log.error(f"'Sanity check Failed:\n{ sanity_check['message'] }'")
+
+    def set_stop_flag(self):
+        self.stop_flag = True
+
+    def stop_flag_check(self):
+        return self.stop_flag
 
 class FormInput():
 
