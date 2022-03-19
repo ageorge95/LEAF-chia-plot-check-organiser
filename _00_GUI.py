@@ -16,8 +16,7 @@ from yaml import safe_load
 from traceback import format_exc
 
 from _00_base import configure_logger_and_queue
-from _00_back_end import LEAF_back_end,\
-    configuration
+from _00_back_end import LEAF_back_end
 
 class buttons_label_state_change():
     combobox_plot_type_to_use: ttk.Combobox
@@ -166,25 +165,11 @@ class FormControls(buttons_label_state_change,
         self.input_frame = input_frame
         self.progress_frame = progress_frame
 
-        self.label_plot_type_to_use = Label(self.frame, text='Type of plots:')
-        self.plot_type_to_use = tk.StringVar()
-        self.combobox_plot_type_to_use = ttk.Combobox(
-            self.frame,
-            textvariable=self.plot_type_to_use,
-            width=15,
-            state='readonly',
-            values=list(configuration.keys())
-        )
-        self.combobox_plot_type_to_use.bind("<<ComboboxSelected>>", self.refresh_input_address)
-        self.combobox_plot_type_to_use.set('PLOT TYPE')
-        self.label_plot_type_to_use.grid(column=0, row=1)
-        self.combobox_plot_type_to_use.grid(column=0, row=2)
-        
         self.label_challenges_to_check = Label(self.frame, text='Nr of Challenges to check')
         self.entry_challenges_to_check = Entry(self.frame)
         self.entry_challenges_to_check.insert(END, '100')
-        self.label_challenges_to_check.grid(column=1, row=1)
-        self.entry_challenges_to_check.grid(column=1, row=2)
+        self.label_challenges_to_check.grid(column=0, row=1)
+        self.entry_challenges_to_check.grid(column=0, row=2)
 
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
         self.label_backend_status_notify.grid(column=4, row=1)
@@ -211,43 +196,29 @@ class FormControls(buttons_label_state_change,
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
-    def refresh_input_address(self,
-                              *args):
-        selected_plot_type = self.combobox_plot_type_to_use.get()
-        import_path = path.join(configuration[selected_plot_type]['root'], 'config', 'config.yaml')
-        self.input_frame.label_import_paths['text'] = import_path
-
-    def check_plot_type_selection(self):
-        if self.plot_type_to_use.get() == 'PLOT TYPE':
-            self._log.warning('Please select a plot type !')
-            return False
-        return True
-
     def master_display_stored_results(self):
-        if self.check_plot_type_selection():
-            def action():
-                self.disable_all_buttons()
-                self.backend_label_busy(text='Busy with displaying stored results !')
-                self.parse_input_and_get_paths(self.input_frame.return_input())
-                self.print_stored_results(plot_type=self.plot_type_to_use.get())
-                self.enable_all_buttons()
-                self.backend_label_free()
-            Thread(target=action).start()
+        def action():
+            self.disable_all_buttons()
+            self.backend_label_busy(text='Busy with displaying stored results !')
+            self.parse_input_and_get_paths(self.input_frame.return_input())
+            self.print_stored_results(plot_type=self.plot_type_to_use.get())
+            self.enable_all_buttons()
+            self.backend_label_free()
+        Thread(target=action).start()
 
     def master_check_plots(self):
-        if self.check_plot_type_selection():
-            def action():
-                self.backend_label_busy(text='Busy with checking plots !')
-                self._log.info('Checking the plots.')
-                self.disable_all_buttons()
-                self.parse_input_and_get_paths(self.input_frame.return_input())
-                self.check_plots(plot_type=self.plot_type_to_use.get(),
-                                 nr_challenges=int(self.entry_challenges_to_check.get()),
-                                 progress_callback=self.progress_frame.update_progress_callback)
-                self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
-                self.enable_all_buttons()
-                self.backend_label_free()
-            Thread(target=action).start()
+        def action():
+            self.backend_label_busy(text='Busy with checking plots !')
+            self._log.info('Checking the plots.')
+            self.disable_all_buttons()
+            self.parse_input_and_get_paths(self.input_frame.return_input())
+            self.check_plots(plot_type=self.plot_type_to_use.get(),
+                             nr_challenges=int(self.entry_challenges_to_check.get()),
+                             progress_callback=self.progress_frame.update_progress_callback)
+            self._log.info('Plots check completed. Hit that "Display plots check" button to see the results.')
+            self.enable_all_buttons()
+            self.backend_label_free()
+        Thread(target=action).start()
 
 class FormInput():
 
@@ -259,7 +230,9 @@ class FormInput():
         self.button_import_paths = ttk.Button(self.frame, text='Import paths', command=self.import_paths)
         self.button_import_paths.grid(column=0, row=0, sticky=W)
 
-        self.label_import_paths = Label(self.frame, text='Select an plot type to see the import path ...')
+        self.import_paths = [path.join(path.expanduser("~"),'.chia', 'mainnet', 'config', 'config.yaml'),
+                        path.join(path.expanduser("~"),'.chives', 'mainnet', 'config', 'config.yaml')]
+        self.label_import_paths = Label(self.frame, text=';\n'.join(self.import_paths))
         self.label_import_paths.grid(column=0, row=1, rowspan=2)
 
         self.scrolled_text_input = ScrolledText(self.frame, width=58, height=28)
@@ -270,17 +243,21 @@ class FormInput():
 
     def import_paths(self):
         if self.label_import_paths.cget("text") != 'Select an plot type to see the import path ...':
-            try:
-                self._log.info(f'Importing paths from { self.label_import_paths.cget("text") } ...')
-                self.button_import_paths.configure(state='disabled')
-                with open(self.label_import_paths.cget("text"), 'r') as input_yaml_config:
-                    yaml_config = safe_load(input_yaml_config)
-                plots_paths = yaml_config['harvester']['plot_directories']
-                self.scrolled_text_input.delete('1.0', tk.END)
-                self.scrolled_text_input.insert(tk.INSERT, '\n'.join(plots_paths))
-                self._log.info('Paths imported successfully !')
-            except:
-                self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+            all_plot_paths = []
+            for import_path in self.import_paths:
+                try:
+                    self._log.info(f'Importing paths from { import_path } ...')
+                    self.button_import_paths.configure(state='disabled')
+                    with open(import_path, 'r') as input_yaml_config:
+                        yaml_config = safe_load(input_yaml_config)
+                    plots_paths = yaml_config['harvester']['plot_directories']
+                    all_plot_paths += plots_paths
+                    self._log.info('Paths imported successfully !')
+                except:
+                    self._log.error(f'Failed to import the paths from { self.label_import_paths.cget("text") }\n{ format_exc(chain=False) }')
+
+            self.scrolled_text_input.delete('1.0', tk.END)
+            self.scrolled_text_input.insert(tk.INSERT, '\n'.join(all_plot_paths))
 
             self.button_import_paths.configure(state='normal')
 

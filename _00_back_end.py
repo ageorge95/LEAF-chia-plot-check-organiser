@@ -12,11 +12,6 @@ import chiapos
 from blspy import G1Element, PrivateKey, AugSchemeMPL
 import blspy
 
-configuration = {'chia__XCH': {'port': 8444,
-                               'root': Path(os_path.join(os_path.expanduser("~"),'.chia\mainnet'))},
-                 'chives__XCC': {'port': 9699,
-                                 'root': Path(os_path.join(os_path.expanduser("~"),'.chives\mainnet'))}}
-
 def parse_plot_info(memo: bytes):
     # Parses the plot info bytes into keys
     if len(memo) == (48 + 48 + 32):
@@ -211,14 +206,16 @@ class LEAF_back_end():
                             if pool_contract_puzzle_hash:
                                 self._log.info(f'NFT plot detected with pool contract ph: { pool_contract_puzzle_hash.hex() }')
 
-                            local_sk = master_sk_to_local_sk(master=local_master_sk,
-                                                             port=configuration[plot_type]['port'])
-                            self._log.info(f'Local sk: { local_sk }')
+                            for port in [['chia-XCH', 8444],
+                                         ['chives-XCC', 9699]]:
+                                local_sk = master_sk_to_local_sk(master=local_master_sk,
+                                                                 port=port[1])
+                                self._log.info(f'Local sk: { local_sk }')
 
-                            plot_public_key: G1Element = generate_plot_public_key(
-                                                    local_sk.get_g1(), farmer_public_key, pool_contract_puzzle_hash is not None
-                                                )
-                            self._log.info(f'Plot public key: { plot_public_key }\n\n')
+                                plot_public_key: G1Element = generate_plot_public_key(
+                                                        local_sk.get_g1(), farmer_public_key, pool_contract_puzzle_hash is not None
+                                                    )
+                                self._log.info(f'Plot public key for port { port[0] } -> { port[1] }: { plot_public_key }\n\n')
 
                             total_proofs = 0
 
