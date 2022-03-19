@@ -1,7 +1,7 @@
 from os import path,\
     listdir,\
     mkdir
-from logging import getLogger, StreamHandler, Formatter
+from logging import getLogger
 from json import load,\
     dump
 from tabulate import tabulate
@@ -9,6 +9,7 @@ from traceback import format_exc
 import chiapos
 from blspy import G1Element, PrivateKey, AugSchemeMPL
 import blspy
+from time import sleep
 
 def parse_plot_info(memo: bytes):
     # Parses the plot info bytes into keys
@@ -278,6 +279,10 @@ class LEAF_back_end(output_manager):
                                                   )
                                 self.save_data(plot_name,
                                                working_set)
+
+                                if delay_between_checks:
+                                    self._log.info(f"Going to sleep for { delay_between_checks } seconds ...")
+                                    sleep(delay_between_checks)
                             else:
                                 self._log.info('This challenge was already checked for this plot.')
                                 total_proofs += working_set['challenges'][str(challenge_index)]['proofs']
