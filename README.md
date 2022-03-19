@@ -6,13 +6,20 @@ Tool used to keep a history of plot checks made with chia or chia forks; it can 
 ![alt text](https://c.tenor.com/FDwYMy302gMAAAAM/tumbleweed-silence.gif?raw=true)
 
 # High level overview
-The tool will check the plots, using one of the pre-configured coins (XCH or XCC).
+The tool will check chia plots using the chiapos lib.
 
-On subsequent executions, only new plots (that are not present in LEAF_catalog.json) will be checked.
+The tool keeps a history of what was checked in the past on a plot and on a challenge level, meaning that it knows which plots and which challenges were already checked.
 
-The history is saved, by default, into a LEAF_catalog.json file, in the root folder of the tool's execution.
+On subsequent executions, only new plots and new challenges will be checked.
 
-It can display a table with all the plots, and the most important part, if the check is passed or failed, and the check's score (the total_proofs/nr_of_challenges ratio).
+The history is saved, by default, into an "output" folder, in the root folder of the tool's execution.
+
+It can display a table with all the plots, the challenges used to check that plot and the plot's score (the total_proofs/nr_of_challenges ratio).
+
+### NEW
+The plots check is a very I/O intensive operation !
+
+You can now put a delay between each challenge check; usefull when the HDD where the plots are located is also beeing farmed.
 
 # Feedback/ Contribution
 - Please post any issues you encountered or any feature requests in the issues tab.
@@ -22,7 +29,7 @@ It can display a table with all the plots, and the most important part, if the c
 
 ![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/overall.jpg?raw=true)
 
-NOTE: The output is present in the GUI's output, in the runtime_log.log and returned to the calling method, if used as a sub-module.
+NOTE: The output is present in the GUI's output, in the runtime_log.log and returned to the caller method, if used as a sub-module.
 
 # How to use
 
