@@ -315,12 +315,12 @@ class ProgressBar():
 
         self._log = getLogger()
 
-        self.label_subprogress = Label(self.frame, text='Current task progress')
+        self.label_subprogress = Label(self.frame, text='Current task progress: 0 / 0')
         self.label_subprogress.grid(column=0, row=0)
         self.subprogress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
         self.subprogress.grid(column=0, row=1)
 
-        self.label_progress = Label(self.frame, text='Overall progress')
+        self.label_progress = Label(self.frame, text='Overall progress: 0 / 0')
         self.label_progress.grid(column=0, row=2)
         self.progress = ttk.Progressbar(self.frame, orient = "horizontal", length = 1310, mode = "determinate", style = "colour.Horizontal.TProgressbar")
         self.progress.grid(column=0, row=3)
@@ -330,10 +330,12 @@ class ProgressBar():
         if kwargs.get('subprogress'):
             self.subprogress['maximum'] = kwargs.get('subprogress')['maximum']
             self.subprogress['value'] = kwargs.get('subprogress')['value']
+            self.label_subprogress.configure(text=f"Current task progress: { kwargs.get('subprogress')['text'] }")
 
         if kwargs.get('progress'):
             self.progress['maximum'] = kwargs.get('progress')['maximum']
             self.progress['value'] = kwargs.get('progress')['value']
+            self.label_progress.configure(text=f"Overall progress: { kwargs.get('progress')['text'] }" )
 
 class App():
 

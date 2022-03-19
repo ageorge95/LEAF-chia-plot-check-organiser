@@ -177,18 +177,20 @@ class LEAF_back_end(output_manager):
                     stop_flag_check):
         try:
 
-            if stop_flag_check():
-                self._log.warning('STOP requested by the user. Do not worry,'
-                                  ' on the next execution the plot check will resume where it left off.')
-                return
             # reset the progress bar
             progress_callback(subprogress={'maximum': 0,
-                                            'value': 0},
+                                           'value': 0,
+                                           'text': f'0 / { nr_challenges }'},
                               progress={'maximum': 0,
-                                            'value': 0}
-                                                  )
+                                        'value': 0,
+                                        'text': f'0 / { len(self.all_plots_paths) }'})
 
             for plot_index, plot_path in enumerate(self.all_plots_paths, 1):
+                if stop_flag_check():
+                    self._log.warning('STOP requested by the user. Do not worry,'
+                                      ' on the next execution the plot check will resume where it left off.')
+                    return
+
                 if not path.isfile(plot_path):
                     self._log.warning('{} is not a valid path. It will be skipped.'.format(plot_path))
                 else:
@@ -258,6 +260,10 @@ class LEAF_back_end(output_manager):
                         total_proofs = 0
 
                         for challenge_index in range(0, nr_challenges):
+                            if stop_flag_check():
+                                self._log.warning('STOP requested by the user. Do not worry,'
+                                                  ' on the next execution the plot check will resume where it left off.')
+                                return
 
                             self._log.info(f'Checking challenge {challenge_index + 1}/{nr_challenges} ...')
 
@@ -279,12 +285,9 @@ class LEAF_back_end(output_manager):
                                     ver_quality_str = verifier.validate_proof(id, size, challenge, proof)
                                     assert quality_str == ver_quality_str
 
-                                if stop_flag_check():
-                                    self._log.warning('STOP requested by the user. Do not worry,'
-                                                      ' on the next execution the plot check will resume where it left off.')
-                                    return
                                 progress_callback(subprogress={'maximum': nr_challenges,
-                                                               'value': challenge_index+1}
+                                                               'value': challenge_index+1,
+                                                               'text': f"{ challenge_index+1 } / { nr_challenges }"}
                                                   )
                                 self.save_data(plot_name,
                                                working_set)
@@ -301,12 +304,9 @@ class LEAF_back_end(output_manager):
                     except:
                         self._log.error(f'Found an error while checking {plot_path} \n{format_exc(chain=False)}')
 
-                if stop_flag_check():
-                    self._log.warning('STOP requested by the user. Do not worry,'
-                                      ' on the next execution the plot check will resume where it left off.')
-                    return
                 progress_callback(progress={'maximum': len(self.all_plots_paths),
-                                            'value': plot_index}
-                                                  )
+                                            'value': plot_index,
+                                            'text': f"{ plot_index } / { len(self.all_plots_paths) }"})
+
         except:
             self._log.error('Oh snap ! An error has occurred while checking the plots:\n{}'.format(format_exc(chain=False)))
