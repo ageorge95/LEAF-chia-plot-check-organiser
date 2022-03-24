@@ -59,6 +59,8 @@ def generate_plot_public_key(local_pk: G1Element, farmer_pk: G1Element, include_
     
 class output_manager():
     def __init__(self):
+        self._log = getLogger()
+
         if not path.isdir('output'):
             mkdir('output')
 
@@ -76,8 +78,22 @@ class output_manager():
     def save_data(self,
                   plot_name,
                   content):
-        with open(path.join('output', plot_name+'.json'), 'w') as output_handle:
-            dump(content, output_handle, indent=2)
+        max_retry = 5
+        current_try = -1
+        while True:
+            current_try += 1
+            if current_try == max_retry:
+                self._log.error(f"Max retries reached while trying to load the json for { plot_name }.")
+                raise Exception
+            try:
+                with open(path.join('output', plot_name+'.json'), 'w') as output_handle:
+                    dump(content, output_handle, indent=2)
+                break
+            except:
+                current_try += 1
+                self._log.warning(f"Error found while trying to load the json for { plot_name }."
+                                  f" Will retry in 5 sec. Retry { current_try } / { max_retry }\n{format_exc(chain=False)}")
+                sleep(5)
 
     def get_entries(self):
         return listdir('output')
