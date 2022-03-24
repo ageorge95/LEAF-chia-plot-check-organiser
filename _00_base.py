@@ -1,8 +1,9 @@
 from logging import basicConfig,\
     INFO, DEBUG, WARNING, ERROR, CRITICAL,\
     Formatter,\
-    StreamHandler, FileHandler, Handler,\
+    StreamHandler, Handler,\
     getLogger
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from sys import stdout
 from queue import Queue
 
@@ -31,7 +32,10 @@ def configure_logger():
     ch = StreamHandler(stream=stdout)
     ch.setLevel(DEBUG)
     ch.setFormatter(CustomFormatter())
-    fh = FileHandler("runtime_log.log")
+    fh = ConcurrentRotatingFileHandler('runtime_log.log',
+                                       mode='a',
+                                       maxBytes=20 * 1024 * 1024,
+                                       backupCount=2)
     fh.setLevel(DEBUG)
     fh.setFormatter(Formatter('%(asctime)s,%(msecs)d %(levelname)-4s [%(filename)s:%(lineno)d -> %(name)s - %(funcName)s] ___ %(message)s'))
 
