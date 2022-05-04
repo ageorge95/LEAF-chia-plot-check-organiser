@@ -259,102 +259,105 @@ class LEAF_back_end(output_manager):
                     working_set['path_history'].append(plot_path)
 
                     try:
-                        prover = chiapos.DiskProver(plot_path)
-                        verifier = chiapos.Verifier()
+                        # only do the checks below if the plots has not been fully checked before
+                        # this check saves some I/O requests
+                        if nr_challenges > len(working_set['challenges'].keys()):
+                            prover = chiapos.DiskProver(plot_path)
+                            verifier = chiapos.Verifier()
 
-                        size = prover.get_size()
-                        self._log.info(f'This plot has a size of {size}')
-                        working_set['plot_size'] = size
-                        # sanity check - check if the parsed plot size is the same as in the plot filename
-                        assert size == int(plot_path.split('k')[1].split('-')[0])
+                            size = prover.get_size()
+                            self._log.info(f'This plot has a size of {size}')
+                            working_set['plot_size'] = size
+                            # sanity check - check if the parsed plot size is the same as in the plot filename
+                            assert size == int(plot_path.split('k')[1].split('-')[0])
 
-                        id = prover.get_id()
-                        working_set['plot_id'] = id.hex()
-                        self._log.info(f'Plot ID: { id.hex() }')
+                            id = prover.get_id()
+                            working_set['plot_id'] = id.hex()
+                            self._log.info(f'Plot ID: { id.hex() }')
 
-                        (pool_public_key_or_puzzle_hash,
-                         farmer_public_key,
-                         local_master_sk) = parse_plot_info(prover.get_memo())
-                        working_set['farmer_public_key'] = str(farmer_public_key)
-                        working_set['local_master_sk'] = str(local_master_sk)
-                        working_set['pool_public_key_or_puzzle_hash'] = str(pool_public_key_or_puzzle_hash)
+                            (pool_public_key_or_puzzle_hash,
+                             farmer_public_key,
+                             local_master_sk) = parse_plot_info(prover.get_memo())
+                            working_set['farmer_public_key'] = str(farmer_public_key)
+                            working_set['local_master_sk'] = str(local_master_sk)
+                            working_set['pool_public_key_or_puzzle_hash'] = str(pool_public_key_or_puzzle_hash)
 
-                        self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash }')
-                        self._log.info(f'Farmer public key: { farmer_public_key }')
-                        self._log.info(f'Local master sk: { local_master_sk }')
+                            self._log.info(f'Pool public key/ Puzzle Hash: { pool_public_key_or_puzzle_hash }')
+                            self._log.info(f'Farmer public key: { farmer_public_key }')
+                            self._log.info(f'Local master sk: { local_master_sk }')
 
-                        pool_public_key: G1Element = None
-                        pool_contract_puzzle_hash: bytes = None
-                        if isinstance(pool_public_key_or_puzzle_hash, G1Element):
-                            pool_public_key = pool_public_key_or_puzzle_hash
-                        else:
-                            assert isinstance(pool_public_key_or_puzzle_hash, bytes)
-                            pool_contract_puzzle_hash = pool_public_key_or_puzzle_hash
-
-                        if pool_public_key:
-                            self._log.info(f'OG plot detected with pool public key: { pool_public_key }')
-                            working_set['plot_type'] = 'OG'
-                        if pool_contract_puzzle_hash:
-                            self._log.info(f'NFT plot detected with pool contract ph: { pool_contract_puzzle_hash.hex() }')
-                            working_set['plot_type'] = 'NFT'
-
-                        for port in [['chia-XCH', 8444],
-                                     ['chives-XCC', 9699]]:
-                            local_sk = master_sk_to_local_sk(master=local_master_sk,
-                                                             port=port[1])
-                            self._log.info(f'Local sk: { local_sk }')
-
-                            plot_public_key: G1Element = generate_plot_public_key(
-                                                    local_sk.get_g1(), farmer_public_key, pool_contract_puzzle_hash is not None
-                                                )
-                            working_set[f'plot_public_key_{ port[1] }'] = str(plot_public_key)
-                            self._log.info(f'Plot public key for port { port[0] } -> { port[1] }: { plot_public_key }\n\n')
-
-                        self.save_data(plot_name,
-                                       working_set)
-                        total_proofs = 0
-
-                        for challenge_index in range(0, nr_challenges):
-                            if stop_flag_check():
-                                self._log.warning('STOP requested by the user. Do not worry,'
-                                                  ' on the next execution the plot check will resume where it left off.')
-                                return
-
-                            self._log.info(f'Checking challenge {challenge_index + 1}/{nr_challenges} ...')
-
-                            if str(challenge_index) not in working_set['challenges'].keys():
-                                challenge = std_hash(challenge_index.to_bytes(32, "big"))
-                                working_set['challenges'][challenge_index] = {'challenge': challenge.hex()}
-                                self._log.info(f'Prepared challenge {challenge_index + 1}/{nr_challenges}: { challenge.hex() }')
-
-                                qualities_for_challenge = prover.get_qualities_for_challenge(challenge)
-
-                                working_set['challenges'][challenge_index]['proofs'] = len(qualities_for_challenge)
-                                self._log.info(f'Found { len(qualities_for_challenge) } proofs for the current challenge.')
-
-                                # verify the proof
-                                for quality_index, quality_str in enumerate(qualities_for_challenge):
-
-                                    proof = prover.get_full_proof(challenge, quality_index)
-                                    total_proofs += 1
-                                    ver_quality_str = verifier.validate_proof(id, size, challenge, proof)
-                                    assert quality_str == ver_quality_str
-
-                                progress_callback(subprogress={'maximum': nr_challenges,
-                                                               'value': challenge_index+1,
-                                                               'text': f"{ challenge_index+1 } / { nr_challenges }"}
-                                                  )
-                                self.save_data(plot_name,
-                                               working_set)
-
-                                if delay_between_checks:
-                                    self._log.info(f"Going to sleep for { delay_between_checks } seconds ...")
-                                    sleep(delay_between_checks)
+                            pool_public_key: G1Element = None
+                            pool_contract_puzzle_hash: bytes = None
+                            if isinstance(pool_public_key_or_puzzle_hash, G1Element):
+                                pool_public_key = pool_public_key_or_puzzle_hash
                             else:
-                                self._log.info('This challenge was already checked for this plot.')
-                                total_proofs += working_set['challenges'][str(challenge_index)]['proofs']
+                                assert isinstance(pool_public_key_or_puzzle_hash, bytes)
+                                pool_contract_puzzle_hash = pool_public_key_or_puzzle_hash
 
-                        self._log.info(f'DONE. Found { total_proofs } proofs/ { nr_challenges } checks, with a ratio of { total_proofs/nr_challenges }.')
+                            if pool_public_key:
+                                self._log.info(f'OG plot detected with pool public key: { pool_public_key }')
+                                working_set['plot_type'] = 'OG'
+                            if pool_contract_puzzle_hash:
+                                self._log.info(f'NFT plot detected with pool contract ph: { pool_contract_puzzle_hash.hex() }')
+                                working_set['plot_type'] = 'NFT'
+
+                            for port in [['chia-XCH', 8444],
+                                         ['chives-XCC', 9699]]:
+                                local_sk = master_sk_to_local_sk(master=local_master_sk,
+                                                                 port=port[1])
+                                self._log.info(f'Local sk: { local_sk }')
+
+                                plot_public_key: G1Element = generate_plot_public_key(
+                                                        local_sk.get_g1(), farmer_public_key, pool_contract_puzzle_hash is not None
+                                                    )
+                                working_set[f'plot_public_key_{ port[1] }'] = str(plot_public_key)
+                                self._log.info(f'Plot public key for port { port[0] } -> { port[1] }: { plot_public_key }\n\n')
+
+                            self.save_data(plot_name,
+                                           working_set)
+                            total_proofs = 0
+
+                            for challenge_index in range(0, nr_challenges):
+                                if stop_flag_check():
+                                    self._log.warning('STOP requested by the user. Do not worry,'
+                                                      ' on the next execution the plot check will resume where it left off.')
+                                    return
+
+                                self._log.info(f'Checking challenge {challenge_index + 1}/{nr_challenges} ...')
+
+                                if str(challenge_index) not in working_set['challenges'].keys():
+                                    challenge = std_hash(challenge_index.to_bytes(32, "big"))
+                                    working_set['challenges'][challenge_index] = {'challenge': challenge.hex()}
+                                    self._log.info(f'Prepared challenge {challenge_index + 1}/{nr_challenges}: { challenge.hex() }')
+
+                                    qualities_for_challenge = prover.get_qualities_for_challenge(challenge)
+
+                                    working_set['challenges'][challenge_index]['proofs'] = len(qualities_for_challenge)
+                                    self._log.info(f'Found { len(qualities_for_challenge) } proofs for the current challenge.')
+
+                                    # verify the proof
+                                    for quality_index, quality_str in enumerate(qualities_for_challenge):
+
+                                        proof = prover.get_full_proof(challenge, quality_index)
+                                        total_proofs += 1
+                                        ver_quality_str = verifier.validate_proof(id, size, challenge, proof)
+                                        assert quality_str == ver_quality_str
+
+                                    progress_callback(subprogress={'maximum': nr_challenges,
+                                                                   'value': challenge_index+1,
+                                                                   'text': f"{ challenge_index+1 } / { nr_challenges }"}
+                                                      )
+                                    self.save_data(plot_name,
+                                                   working_set)
+
+                                    if delay_between_checks:
+                                        self._log.info(f"Going to sleep for { delay_between_checks } seconds ...")
+                                        sleep(delay_between_checks)
+                                else:
+                                    self._log.info('This challenge was already checked for this plot.')
+                                    total_proofs += working_set['challenges'][str(challenge_index)]['proofs']
+
+                            self._log.info(f'DONE. Found { total_proofs } proofs/ { nr_challenges } checks, with a ratio of { total_proofs/nr_challenges }.')
 
                     except:
                         self._log.error(f'Found an error while checking {plot_path} \n{format_exc(chain=False)}')
