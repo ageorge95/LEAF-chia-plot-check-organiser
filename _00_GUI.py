@@ -19,7 +19,9 @@ from _00_base import configure_logger_and_queue
 from _00_back_end import LEAF_back_end
 
 class buttons_label_state_change():
-    button_display_stored_results: ttk.Button
+    button_display_stored_results_by_proof_ratio: ttk.Button
+    button_display_stored_results_by_tsted_challen: ttk.Button
+    button_display_histograms: ttk.Button
     button_check_plots: ttk.Button
     label_backend_status: ttk.Label
     _log: getLogger
@@ -30,7 +32,9 @@ class buttons_label_state_change():
 
     def get_buttons_reference(self):
 
-        self.buttons = [self.button_display_stored_results,
+        self.buttons = [self.button_display_stored_results_by_proof_ratio,
+                        self.button_display_stored_results_by_tsted_challen,
+                        self.button_display_histograms,
                         self.button_check_plots
                         ]
     def disable_all_buttons(self):
@@ -193,17 +197,22 @@ class FormControls(buttons_label_state_change,
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
         self.label_hover_hints.grid(column=0, row=6, columnspan=2)
 
-        self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks__by proofs ratio', command=lambda :self.master_display_stored_results('proofs_found'))
-        self.button_display_stored_results.grid(column=0, row=7, sticky=W)
+        self.button_display_stored_results_by_proof_ratio = ttk.Button(self.frame, text='Display plot checks__by proofs ratio', command=lambda :self.master_display_stored_results('proofs_found'))
+        self.button_display_stored_results_by_proof_ratio.grid(column=0, row=7, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
-        self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
+        self.tip_display_stored_results.bind_widget(self.button_display_stored_results_by_proof_ratio, balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
                                                                                                   " Ordered by the proofs ratio.")
 
-        self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks__by tested challenges', command=lambda :self.master_display_stored_results('challenges_tried'))
-        self.button_display_stored_results.grid(column=0, row=8, sticky=W)
+        self.button_display_stored_results_by_tsted_challen = ttk.Button(self.frame, text='Display plot checks__by tested challenges', command=lambda :self.master_display_stored_results('challenges_tried'))
+        self.button_display_stored_results_by_tsted_challen.grid(column=0, row=8, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
-        self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
+        self.tip_display_stored_results.bind_widget(self.button_display_stored_results_by_tsted_challen, balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
                                                                                                   " Ordered by the nr of tested challenges.")
+
+        self.button_display_histograms = ttk.Button(self.frame, text='Display histograms', command=self.master_display_histograms)
+        self.button_display_histograms.grid(column=0, row=9, sticky=W)
+        self.tip_display_stored_results = tix.Balloon(self.frame)
+        self.tip_display_stored_results.bind_widget(self.button_display_histograms, balloonmsg="Will display various histograms based on the plots found in the specified directories.")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
         self.button_check_plots.grid(column=0, row=11, sticky=W, columnspan=2)
@@ -233,6 +242,9 @@ class FormControls(buttons_label_state_change,
 
         return {'success': success,
                 'message': message}
+
+    def master_display_histograms(self):
+        pass
 
     def master_display_stored_results(self,
                                       filter_by):
