@@ -246,7 +246,7 @@ class FormControls(buttons_label_state_change,
     def master_display_histograms(self):
         def action():
             self.disable_all_buttons()
-            self.backend_label_busy(text='Busy with displaying stored results !')
+            self.backend_label_busy(text='Busy with computing the histograms !')
             self.parse_input_and_get_paths(self.input_frame.return_input())
             self.trigger_histogram_build()
             self.enable_all_buttons()
