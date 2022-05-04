@@ -6,6 +6,7 @@ from logging import basicConfig,\
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from sys import stdout
 from queue import Queue
+from os import system
 
 def configure_logger():
     class CustomFormatter(Formatter):
@@ -67,6 +68,7 @@ class configure_logger_and_queue():
 
         super(configure_logger_and_queue, self).__init__()
 
+        system('color')
         configure_logger()
 
         self._log = getLogger()
