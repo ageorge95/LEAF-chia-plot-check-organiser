@@ -156,7 +156,8 @@ class LEAF_back_end(output_manager):
 
         return duplicates_found
 
-    def print_stored_results(self):
+    def print_stored_results(self,
+                             filter_by):
         try:
 
             list_with_all_plots = self.parse_and_return_relevant_data([path.basename(_) for _ in self.all_plots_paths])
@@ -167,7 +168,9 @@ class LEAF_back_end(output_manager):
 
             # sort the results
             sorted_checked_plots = sorted(checked_plots,
-                                 key=lambda x: (x['proofs_found'] / x['challenges_tried']))
+                                 key=lambda x: ((x['proofs_found'] / x['challenges_tried']) if filter_by == 'proofs_found'
+                                                else x['challenges_tried'] if filter_by == 'challenges_tried'
+                                                else x['proofs_found']))
 
             # reporting phase
             headers = ['Plot name', 'Challenges', 'Proofs Ratio']
