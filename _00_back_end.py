@@ -10,6 +10,27 @@ import chiapos
 from blspy import G1Element, PrivateKey, AugSchemeMPL
 import blspy
 from time import sleep
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+from typing import List
+
+def build_distribution_graph(proofs_found_list: List,
+                             proofs_checked_list: List):
+
+    fig = make_subplots(rows=2, cols=1)
+
+    # add the proofs_found histogram
+    fig.add_trace(go.Histogram(x=proofs_found_list,
+                               name='proofs_found',
+                               marker=dict(color='green')),
+                  row=1,col=1)
+
+    # add the proofs_found histogram
+    fig.add_trace(go.Histogram(x=proofs_checked_list,
+                               name='proofs_checked',
+                               marker=dict(color='blue')),
+                  row=2, col=1)
+    fig.show()
 
 def parse_plot_info(memo: bytes):
     # Parses the plot info bytes into keys
