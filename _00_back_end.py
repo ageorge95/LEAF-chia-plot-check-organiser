@@ -10,6 +10,9 @@ import chiapos
 from blspy import G1Element, PrivateKey, AugSchemeMPL
 import blspy
 from time import sleep
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+from typing import List
 
 def parse_plot_info(memo: bytes):
     # Parses the plot info bytes into keys
@@ -126,6 +129,25 @@ class LEAF_back_end(output_manager):
         self.wd_root = wd_root
         self.wf_name = wf_name
 
+    def build_distribution_graph(self,
+                                 proofs_found_list: List,
+                                 proofs_checked_list: List):
+
+        fig = make_subplots(rows=2, cols=1)
+
+        # add the proofs_found histogram
+        fig.add_trace(go.Histogram(x=proofs_found_list,
+                                   name='proofs_found',
+                                   marker=dict(color='green')),
+                      row=1,col=1)
+
+        # add the proofs_found histogram
+        fig.add_trace(go.Histogram(x=proofs_checked_list,
+                                   name='proofs_checked',
+                                   marker=dict(color='blue')),
+                      row=2, col=1)
+        fig.show()
+
     def parse_input_and_get_paths(self,
                                   input_data: list):
         self._log.info('Looking for plots in the input data ...')
@@ -155,6 +177,20 @@ class LEAF_back_end(output_manager):
                 duplicates_found = True
 
         return duplicates_found
+
+    def trigger_histogram_build(self) -> None:
+        try:
+
+            list_with_all_plots = self.parse_and_return_relevant_data([path.basename(_) for _ in self.all_plots_paths])
+
+            # filter plots with no past checks
+            checked_plots = list(filter(lambda x:x['challenges_tried'], list_with_all_plots))
+
+            if len(checked_plots)>0:
+                self.build_distribution_graph(proofs_found_list=[x['proofs_found'] / x['challenges_tried'] for x in checked_plots],
+                                              proofs_checked_list=[x['challenges_tried'] for x in checked_plots])
+        except:
+            self._log.error('Oh snap ! An error has occurred while printing the stored results:\n{}'.format(format_exc(chain=False)))
 
     def print_stored_results(self,
                              filter_by):
