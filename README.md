@@ -3,7 +3,8 @@
   - can check chia and chia forks plots, using the chipos lib
   - will organise the data in such a way that it allows for easy visualisation on which plots are better and which are worse
   - can add delays between each proof check, which will greatly help to keep the I/O requests channel free; especially useful when farming lots of forks
-  - can stop and resume an ongoing plots check  
+  - can stop and resume an ongoing plots check
+  - can display some fancy histograms containing the distribution of your proofs ratio and other stats
 
 - The tool needs:
   - no special requirements
@@ -26,6 +27,12 @@ v1.4+ is NOT backwards compatible with the older versions !
 ![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/overall.jpg?raw=true)
 
 NOTE: The output is present in the GUI's output, in runtime_log.log and returned to the caller method, if used as a sub-module.
+
+# Example histogram
+(for my ~1000 plots, each checked with 1000 challenges)
+
+![alt text](https://raw.githubusercontent.com/ageorge95/LEAF-chia-plot-check-organiser/main/ReadMe_resources/histogram_ex.JPG?raw=true)
+
 
 # How to use
 The tool was designed mainly for Windows, but should work on every OS where python is supported.
