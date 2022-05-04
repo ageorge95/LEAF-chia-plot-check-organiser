@@ -193,8 +193,14 @@ class FormControls(buttons_label_state_change,
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
         self.label_hover_hints.grid(column=0, row=6, columnspan=2)
 
-        self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks', command=self.master_display_stored_results)
-        self.button_display_stored_results.grid(column=0, row=7, sticky=W, columnspan=2)
+        self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks__by proofs found', command=lambda :self.master_display_stored_results('proofs_found'))
+        self.button_display_stored_results.grid(column=0, row=7, sticky=W)
+        self.tip_display_stored_results = tix.Balloon(self.frame)
+        self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
+                                                                                                  "AND that were checked with this tool in the past")
+
+        self.button_display_stored_results = ttk.Button(self.frame, text='Display plot checks__by proof checks', command=lambda :self.master_display_stored_results('challenges_tried'))
+        self.button_display_stored_results.grid(column=0, row=8, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results,balloonmsg="Will display the plot check results for all the plots that are in the coin's config.yaml "
                                                                                                   "AND that were checked with this tool in the past")
@@ -228,12 +234,13 @@ class FormControls(buttons_label_state_change,
         return {'success': success,
                 'message': message}
 
-    def master_display_stored_results(self):
+    def master_display_stored_results(self,
+                                      filter_by):
         def action():
             self.disable_all_buttons()
             self.backend_label_busy(text='Busy with displaying stored results !')
             self.parse_input_and_get_paths(self.input_frame.return_input())
-            self.print_stored_results()
+            self.print_stored_results(filter_by)
             self.enable_all_buttons()
             self.backend_label_free()
         Thread(target=action).start()
