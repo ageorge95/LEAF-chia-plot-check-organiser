@@ -244,7 +244,14 @@ class FormControls(buttons_label_state_change,
                 'message': message}
 
     def master_display_histograms(self):
-        pass
+        def action():
+            self.disable_all_buttons()
+            self.backend_label_busy(text='Busy with displaying stored results !')
+            self.parse_input_and_get_paths(self.input_frame.return_input())
+            self.trigger_histogram_build()
+            self.enable_all_buttons()
+            self.backend_label_free()
+        Thread(target=action).start()
 
     def master_display_stored_results(self,
                                       filter_by):
