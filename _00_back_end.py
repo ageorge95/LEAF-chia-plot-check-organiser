@@ -186,8 +186,9 @@ class LEAF_back_end(output_manager):
             # filter plots with no past checks
             checked_plots = list(filter(lambda x:x['challenges_tried'], list_with_all_plots))
 
-            self.build_distribution_graph(proofs_found_list=[x['proofs_found'] / x['challenges_tried'] for x in checked_plots],
-                                          proofs_checked_list=[x['challenges_tried'] for x in checked_plots])
+            if len(checked_plots)>0:
+                self.build_distribution_graph(proofs_found_list=[x['proofs_found'] / x['challenges_tried'] for x in checked_plots],
+                                              proofs_checked_list=[x['challenges_tried'] for x in checked_plots])
         except:
             self._log.error('Oh snap ! An error has occurred while printing the stored results:\n{}'.format(format_exc(chain=False)))
 
