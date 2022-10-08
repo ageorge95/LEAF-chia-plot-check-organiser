@@ -257,6 +257,7 @@ class LEAF_back_end(output_manager):
                                                                                          'path_history': []}
 
                     working_set['path_history'].append(plot_path)
+                    working_set['path_history'] = working_set['path_history'][-5:]
 
                     try:
                         # only do the checks below if the plots has not been fully checked before
