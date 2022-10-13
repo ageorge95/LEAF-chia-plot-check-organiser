@@ -108,7 +108,9 @@ class output_manager():
             stored_data = self.load_data(plot_name)
             if stored_data:
                 to_return.append({'name': plot_name,
-                                  'challenges_tried': max(int(_) for _ in stored_data['challenges'].keys())+1,
+                                  'challenges_tried': (max(int(_) for _ in stored_data['challenges'].keys())+1)
+                                                        if (stored_data['challenges'].keys())
+                                                        else 0,
                                   'proofs_found': sum([_['proofs'] for _ in stored_data['challenges'].values()])})
             else:
                 to_return.append({'name': plot_name,
