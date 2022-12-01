@@ -177,11 +177,17 @@ class FormControls(buttons_label_state_change,
         self.label_challenges_to_check.grid(column=0, row=1)
         self.entry_challenges_to_check.grid(column=0, row=2)
 
+        self.label_specific_challenge_to_check = Label(self.frame, text='OR Specific Challenge to check')
+        self.entry_specific_challenge_to_check = Entry(self.frame)
+        self.entry_specific_challenge_to_check.insert(END, '')
+        self.label_specific_challenge_to_check.grid(column=0, row=3)
+        self.entry_specific_challenge_to_check.grid(column=0, row=4)
+
         self.label_delay_between_check = Label(self.frame, text='Delay[s] between challenge check')
         self.entry_delay_between_check = Entry(self.frame)
         self.entry_delay_between_check.insert(END, '0')
-        self.label_delay_between_check.grid(column=0, row=3)
-        self.entry_delay_between_check.grid(column=0, row=4)
+        self.label_delay_between_check.grid(column=0, row=5)
+        self.entry_delay_between_check.grid(column=0, row=6)
 
         self.label_backend_status_notify = Label(self.frame, text='Back-end status:')
         self.label_backend_status_notify.grid(column=4, row=1)
@@ -192,35 +198,35 @@ class FormControls(buttons_label_state_change,
         self.separator_filtering_v.grid(column=3, row=0, rowspan=15, sticky=(N, S))
 
         self.separator_filtering_h = ttk.Separator(self.frame, orient='horizontal')
-        self.separator_filtering_h.grid(column=0, row=5, columnspan=3, sticky=(W, E), pady=(10,10))
+        self.separator_filtering_h.grid(column=0, row=7, columnspan=3, sticky=(W, E), pady=(10,10))
 
         self.label_hover_hints = Label(self.frame, text='NOTE: Hover on the elements below for more info.')
-        self.label_hover_hints.grid(column=0, row=6, columnspan=2)
+        self.label_hover_hints.grid(column=0, row=8, columnspan=2)
 
         self.button_display_stored_results_by_proof_ratio = ttk.Button(self.frame, text='Display plot checks__by proofs ratio', command=lambda :self.master_display_stored_results('proofs_found'))
-        self.button_display_stored_results_by_proof_ratio.grid(column=0, row=7, sticky=W)
+        self.button_display_stored_results_by_proof_ratio.grid(column=0, row=9, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results_by_proof_ratio, balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
                                                                                                   " Ordered by the proofs ratio.")
 
         self.button_display_stored_results_by_tsted_challen = ttk.Button(self.frame, text='Display plot checks__by tested challenges', command=lambda :self.master_display_stored_results('challenges_tried'))
-        self.button_display_stored_results_by_tsted_challen.grid(column=0, row=8, sticky=W)
+        self.button_display_stored_results_by_tsted_challen.grid(column=0, row=10, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_stored_results_by_tsted_challen, balloonmsg="Will display the plot check results for all the plots that are in the specified paths;"
                                                                                                   " Ordered by the nr of tested challenges.")
 
         self.button_display_histograms = ttk.Button(self.frame, text='Display histograms', command=self.master_display_histograms)
-        self.button_display_histograms.grid(column=0, row=9, sticky=W)
+        self.button_display_histograms.grid(column=0, row=11, sticky=W)
         self.tip_display_stored_results = tix.Balloon(self.frame)
         self.tip_display_stored_results.bind_widget(self.button_display_histograms, balloonmsg="Will display various histograms based on the plots found in the specified directories.")
 
         self.button_check_plots = ttk.Button(self.frame, text='Check plots', command=self.master_check_plots)
-        self.button_check_plots.grid(column=0, row=11, sticky=W, columnspan=2)
+        self.button_check_plots.grid(column=0, row=12, sticky=W, columnspan=2)
         self.tip_check_plots = tix.Balloon(self.frame)
         self.tip_check_plots.bind_widget(self.button_check_plots,balloonmsg="Will begin the plots check using the coin selected above.")
 
         self.button_stop_plots = ttk.Button(self.frame, text='STOP check', command=self.set_stop_flag)
-        self.button_stop_plots.grid(column=1, row=11, sticky=E, columnspan=2)
+        self.button_stop_plots.grid(column=1, row=12, sticky=E, columnspan=2)
         self.tip_stop_plots = tix.Balloon(self.frame)
         self.tip_stop_plots.bind_widget(self.button_check_plots,balloonmsg="Will stop the current check. Progress is saved. On the next execution the check will resume.")
 
@@ -271,6 +277,7 @@ class FormControls(buttons_label_state_change,
             self.disable_all_buttons()
             self.parse_input_and_get_paths(self.input_frame.return_input())
             self.check_plots(nr_challenges=int(self.entry_challenges_to_check.get()),
+                             specific_challenge=self.entry_specific_challenge_to_check.get(),
                              delay_between_checks=float(self.entry_delay_between_check.get()),
                              progress_callback=self.progress_frame.update_progress_callback,
                              stop_flag_check=self.stop_flag_check)
