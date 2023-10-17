@@ -6,3 +6,5 @@ catalog.json
 /LEAF_catalog.json
 /output
 /.__runtime_log.lock
+/venv
+activate.bat
